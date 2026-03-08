@@ -815,18 +815,22 @@ const COMMODITY_MOBILE_MAP_LAYERS: MapLayers = {
 // ============================================
 const CYBER_PANELS: Record<string, PanelConfig> = {
   map: { name: 'Global Map', enabled: true, priority: 1 },
-  'live-news': { name: 'Cyber News', enabled: true, priority: 1 },
+  // Primary threat intelligence
   'cyber-threats': { name: 'Cyber Threats', enabled: true, priority: 1 },
   'ransomware': { name: 'Ransomware Tracker', enabled: true, priority: 1 },
   'cve-feed': { name: 'CVE Feed', enabled: true, priority: 1 },
-  'apt-groups': { name: 'APT Groups', enabled: true, priority: 1 },
   'data-breaches': { name: 'Data Breaches', enabled: true, priority: 1 },
-  'osint': { name: 'OSINT Feed', enabled: true, priority: 1 },
+  // Threat actors
+  'apt-groups': { name: 'APT Groups', enabled: true, priority: 1 },
+  // News & OSINT
   'cyber-news': { name: 'Cyber Security News', enabled: true, priority: 1 },
   'security-blogs': { name: 'Security Blogs', enabled: true, priority: 1 },
   'gdelt-intel': { name: 'Threat Intelligence', enabled: true, priority: 1 },
+  'osint': { name: 'OSINT Feed', enabled: true, priority: 1 },
+  // Infrastructure
   outages: { name: 'Internet Outages', enabled: true, priority: 2 },
   cascade: { name: 'Infrastructure Cascade', enabled: true, priority: 2 },
+  // Utilities
   monitors: { name: 'My Monitors', enabled: true, priority: 2 },
   'world-clock': { name: 'World Clock', enabled: true, priority: 2 },
 };

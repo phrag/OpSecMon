@@ -158,7 +158,7 @@ export class DataBreachPanel extends Panel {
     return `
       <div class="breach-row" data-name="${escapeHtml(breach.name)}" data-domain="${escapeHtml(breach.domain)}">
         <div class="breach-logo">
-          ${breach.logoPath ? `<img src="https://haveibeenpwned.com${breach.logoPath}" alt="" onerror="this.style.display='none'">` : ''}
+          ${breach.logoPath ? `<img src="${breach.logoPath.startsWith('http') ? breach.logoPath : 'https://haveibeenpwned.com' + breach.logoPath}" alt="" onerror="this.style.display='none'">` : ''}
           <span class="breach-logo-fallback">🔐</span>
         </div>
         <div class="breach-main">
