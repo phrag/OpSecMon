@@ -1934,6 +1934,8 @@ export class GlobeMap {
   public setHappinessScores(_data: any): void {}
   public setSpeciesRecoveryZones(_zones: any[]): void {}
   public setRenewableInstallations(_installations: any[]): void {}
+  public setRansomwareVictims(_victims: any[]): void {}
+  public setAPTGroups(_groups: any[]): void {}
   public setCyberThreats(threats: CyberThreat[]): void {
     this.cyberMarkers = (threats ?? []).filter(t => t.lat != null && t.lon != null).map(t => ({
       _kind: 'cyber' as const,

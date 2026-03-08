@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package worldmonitor.cyber.v1;
+
+import "sebuf/http/annotations.proto";
+
+// CVE represents a Common Vulnerabilities and Exposures entry.
+message CVE {
+  // CVE identifier (e.g., CVE-2024-1234).
+  string id = 1;
+  // Vulnerability description.
+  string description = 2;
+  // CVSS v3.1 base score (0-10).
+  double cvss_score = 3;
+  // CVSS severity (NONE, LOW, MEDIUM, HIGH, CRITICAL).
+  string severity = 4;
+  // CVSS vector string.
+  string cvss_vector = 5;
+  // Affected products/CPEs.
+  repeated string affected_products = 6;
+  // CWE IDs.
+  repeated string cwe_ids = 7;
+  // Published timestamp (Unix epoch ms).
+  int64 published_at = 8 [(sebuf.http.int64_encoding) = INT64_ENCODING_NUMBER];
+  // Last modified timestamp (Unix epoch ms).
+  int64 modified_at = 9 [(sebuf.http.int64_encoding) = INT64_ENCODING_NUMBER];
+  // Reference URLs.
+  repeated string references = 10;
+  // Whether this CVE is in CISA's Known Exploited Vulnerabilities catalog.
+  bool in_kev = 11;
+  // Vendor/product name for display.
+  string vendor = 12;
+  string product = 13;
+}
+
+// ListCVEsRequest contains parameters for listing CVEs.
+message ListCVEsRequest {
+  // Filter by minimum CVSS score.
+  double min_cvss = 1;
+  // Filter by severity (CRITICAL, HIGH, MEDIUM, LOW).
+  string severity = 2;
+  // Filter by keyword in description.
+  string keyword = 3;
+  // Filter by days (default 7).
+  int32 days = 4;
+  // Page size (default 50, max 100).
+  int32 page_size = 5;
+  // Cursor for pagination.
+  string cursor = 6;
+  // Filter by KEV only.
+  bool kev_only = 7;
+}
+
+// ListCVEsResponse contains the list of CVEs.
+message ListCVEsResponse {
+  // List of CVEs.
+  repeated CVE cves = 1;
+  // Total count.
+  int32 total_count = 2;
+  // Next cursor for pagination.
+  string next_cursor = 3;
+}

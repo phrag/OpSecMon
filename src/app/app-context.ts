@@ -1,4 +1,4 @@
-import type { NewsItem, Monitor, PanelConfig, MapLayers, InternetOutage, SocialUnrestEvent, MilitaryFlight, MilitaryFlightCluster, MilitaryVessel, MilitaryVesselCluster, CyberThreat, USNIFleetReport } from '@/types';
+import type { NewsItem, Monitor, PanelConfig, MapLayers, InternetOutage, SocialUnrestEvent, MilitaryFlight, MilitaryFlightCluster, MilitaryVessel, MilitaryVesselCluster, CyberThreat, USNIFleetReport, MapRansomwareVictim, MapAPTGroup } from '@/types';
 import type { AirportDelayAlert, PositionSample } from '@/services/aviation';
 import type { IranEvent } from '@/generated/client/worldmonitor/conflict/v1/service_client';
 import type { SecurityAdvisory } from '@/services/security-advisories';
@@ -87,6 +87,8 @@ export interface AppContext {
   latestClusters: ClusteredEvent[];
   intelligenceCache: IntelligenceCache;
   cyberThreatsCache: CyberThreat[] | null;
+  ransomwareVictimsCache: MapRansomwareVictim[] | null;
+  aptGroupsCache: MapAPTGroup[] | null;
 
   disabledSources: Set<string>;
   currentTimeRange: TimeRange;

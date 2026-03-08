@@ -35,6 +35,8 @@ import type {
   CyberThreat,
   CableHealthRecord,
   MilitaryBaseEnriched,
+  MapRansomwareVictim,
+  MapAPTGroup,
 } from '@/types';
 import { fetchMilitaryBases, type MilitaryBaseCluster as ServerBaseCluster } from '@/services/military-bases';
 import type { AirportDelayAlert, PositionSample } from '@/services/aviation';
@@ -74,7 +76,6 @@ import {
   CLOUD_REGIONS,
   PORTS,
   SPACEPORTS,
-  APT_GROUPS,
   CRITICAL_MINERALS,
   STOCK_EXCHANGES,
   FINANCIAL_CENTERS,
@@ -296,6 +297,8 @@ export class DeckGLMap {
   private weatherAlerts: WeatherAlert[] = [];
   private outages: InternetOutage[] = [];
   private cyberThreats: CyberThreat[] = [];
+  private ransomwareVictims: MapRansomwareVictim[] = [];
+  private aptGroups: MapAPTGroup[] = [];
   private iranEvents: IranEvent[] = [];
   private aisDisruptions: AisDisruptionEvent[] = [];
   private aisDensity: AisDensityZone[] = [];
@@ -1277,6 +1280,18 @@ export class DeckGLMap {
     }
     layers.push(this.createEmptyGhost('cyber-threats-layer'));
 
+    // Ransomware victims layer
+    if (mapLayers.ransomwareVictims && this.ransomwareVictims.length > 0) {
+      layers.push(this.createRansomwareVictimsLayer());
+    }
+    layers.push(this.createEmptyGhost('ransomware-victims-layer'));
+
+    // APT groups layer
+    if (mapLayers.aptGroups && this.aptGroups.length > 0) {
+      layers.push(this.createAPTGroupsLayer());
+    }
+    layers.push(this.createEmptyGhost('apt-groups-layer'));
+
     // AIS density layer
     if (mapLayers.ais && this.aisDensity.length > 0) {
       layers.push(this.createAisDensityLayer());
@@ -1983,6 +1998,49 @@ export class DeckGLMap {
     });
   }
 
+  private createRansomwareVictimsLayer(): ScatterplotLayer<MapRansomwareVictim> {
+    return new ScatterplotLayer<MapRansomwareVictim>({
+      id: 'ransomware-victims-layer',
+      data: this.ransomwareVictims,
+      getPosition: (d) => [d.lon, d.lat],
+      getRadius: 15000,
+      getFillColor: [139, 0, 0, 200] as [number, number, number, number],
+      radiusMinPixels: 5,
+      radiusMaxPixels: 14,
+      pickable: true,
+      stroked: true,
+      getLineColor: [255, 100, 100, 180] as [number, number, number, number],
+      lineWidthMinPixels: 1,
+    });
+  }
+
+  private createAPTGroupsLayer(): ScatterplotLayer<MapAPTGroup> {
+    const getAttributionColor = (attribution: string): [number, number, number, number] => {
+      switch (attribution.toLowerCase()) {
+        case 'russia': return [220, 53, 69, 220];
+        case 'china': return [253, 126, 20, 220];
+        case 'north korea': return [111, 66, 193, 220];
+        case 'iran': return [32, 201, 151, 220];
+        case 'vietnam': return [23, 162, 184, 220];
+        default: return [108, 117, 125, 200];
+      }
+    };
+
+    return new ScatterplotLayer<MapAPTGroup>({
+      id: 'apt-groups-layer',
+      data: this.aptGroups,
+      getPosition: (d) => [d.lon, d.lat],
+      getRadius: 20000,
+      getFillColor: (d) => getAttributionColor(d.attribution),
+      radiusMinPixels: 7,
+      radiusMaxPixels: 18,
+      pickable: true,
+      stroked: true,
+      getLineColor: [255, 255, 255, 200] as [number, number, number, number],
+      lineWidthMinPixels: 2,
+    });
+  }
+
   private createAisDensityLayer(): ScatterplotLayer {
     return new ScatterplotLayer({
       id: 'ais-density-layer',
@@ -2250,22 +2308,6 @@ export class DeckGLMap {
       radiusMinPixels: 4,
       radiusMaxPixels: 11,
       pickable: true,
-    });
-  }
-
-  private createAPTGroupsLayer(): ScatterplotLayer {
-    // APT Groups - cyber threat actor markers (geopolitical variant only)
-    // Made subtle to avoid visual clutter - small orange dots
-    return new ScatterplotLayer({
-      id: 'apt-groups-layer',
-      data: APT_GROUPS,
-      getPosition: (d) => [d.lon, d.lat],
-      getRadius: 6000,
-      getFillColor: [255, 140, 0, 140] as [number, number, number, number], // Subtle orange
-      radiusMinPixels: 4,
-      radiusMaxPixels: 8,
-      pickable: true,
-      stroked: false, // No outline - cleaner look
     });
   }
 
@@ -4265,6 +4307,16 @@ export class DeckGLMap {
 
   public setCyberThreats(threats: CyberThreat[]): void {
     this.cyberThreats = threats;
+    this.render();
+  }
+
+  public setRansomwareVictims(victims: MapRansomwareVictim[]): void {
+    this.ransomwareVictims = victims;
+    this.render();
+  }
+
+  public setAPTGroups(groups: MapAPTGroup[]): void {
+    this.aptGroups = groups;
     this.render();
   }
 

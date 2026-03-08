@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package worldmonitor.cyber.v1;
+
+import "sebuf/http/annotations.proto";
+
+// RansomwareGroup represents a tracked ransomware operation.
+message RansomwareGroup {
+  // Group name/identifier.
+  string name = 1;
+  // Number of known victims.
+  int32 victim_count = 2;
+  // Last activity timestamp (Unix epoch ms).
+  int64 last_seen_at = 3 [(sebuf.http.int64_encoding) = INT64_ENCODING_NUMBER];
+  // First seen timestamp (Unix epoch ms).
+  int64 first_seen_at = 4 [(sebuf.http.int64_encoding) = INT64_ENCODING_NUMBER];
+  // Group description if available.
+  string description = 5;
+  // Known aliases for the group.
+  repeated string aliases = 6;
+  // Target sectors.
+  repeated string target_sectors = 7;
+  // Target countries.
+  repeated string target_countries = 8;
+  // Group status (active, inactive, defunct).
+  string status = 9;
+  // Ransom site URLs (onion addresses).
+  repeated string sites = 10;
+}
+
+// RansomwareVictim represents a disclosed ransomware victim.
+message RansomwareVictim {
+  // Victim organization name.
+  string name = 1;
+  // Ransomware group responsible.
+  string group = 2;
+  // Discovery date (Unix epoch ms).
+  int64 discovered_at = 3 [(sebuf.http.int64_encoding) = INT64_ENCODING_NUMBER];
+  // Estimated attack date (Unix epoch ms).
+  int64 attacked_at = 4 [(sebuf.http.int64_encoding) = INT64_ENCODING_NUMBER];
+  // Country of the victim organization (ISO 3166-1 alpha-2).
+  string country = 5;
+  // Industry sector.
+  string sector = 6;
+  // Website URL.
+  string website = 7;
+  // Data leak status.
+  string status = 8;
+  // Description or notes.
+  string description = 9;
+}
+
+// ListRansomwareGroupsRequest contains parameters for listing ransomware groups.
+message ListRansomwareGroupsRequest {
+  // Filter by active days (7, 30, 90). 0 = all.
+  int32 active_days = 1;
+  // Page size (default 50, max 100).
+  int32 page_size = 2;
+  // Cursor for pagination.
+  string cursor = 3;
+}
+
+// ListRansomwareGroupsResponse contains the list of ransomware groups.
+message ListRansomwareGroupsResponse {
+  // List of ransomware groups.
+  repeated RansomwareGroup groups = 1;
+  // Total count of groups.
+  int32 total_count = 2;
+  // Next cursor for pagination.
+  string next_cursor = 3;
+}
+
+// ListRansomwareVictimsRequest contains parameters for listing recent victims.
+message ListRansomwareVictimsRequest {
+  // Filter by group name.
+  string group = 1;
+  // Filter by days (default 30).
+  int32 days = 2;
+  // Page size (default 50, max 100).
+  int32 page_size = 3;
+  // Cursor for pagination.
+  string cursor = 4;
+}
+
+// ListRansomwareVictimsResponse contains the list of ransomware victims.
+message ListRansomwareVictimsResponse {
+  // List of victims.
+  repeated RansomwareVictim victims = 1;
+  // Total count.
+  int32 total_count = 2;
+  // Next cursor for pagination.
+  string next_cursor = 3;
+}

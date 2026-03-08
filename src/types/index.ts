@@ -230,6 +230,28 @@ export interface CyberThreat {
   lastSeen?: string;
 }
 
+export interface MapRansomwareVictim {
+  id: string;
+  name: string;
+  group: string;
+  country: string;
+  sector: string;
+  discoveredAt: number;
+  lat: number;
+  lon: number;
+}
+
+export interface MapAPTGroup {
+  id: string;
+  name: string;
+  aliases: string[];
+  attribution: string;
+  targetSectors: string[];
+  targetRegions: string[];
+  lat: number;
+  lon: number;
+}
+
 export interface ConflictZone {
   id: string;
   name: string;
@@ -564,6 +586,9 @@ export interface MapLayers {
   miningSites: boolean;
   processingPlants: boolean;
   commodityPorts: boolean;
+  // Cyber intelligence layers
+  ransomwareVictims: boolean;
+  aptGroups: boolean;
 }
 
 export interface AIDataCenter {

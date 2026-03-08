@@ -33,6 +33,24 @@ function getRelayHeaders(): Record<string, string> {
 
 export const UPSTREAM_TIMEOUT_MS = 10_000;
 
+// ========================================================================
+// Throttled logging (prevent console spam for repeated warnings)
+// ========================================================================
+
+const warnThrottleMap = new Map<string, number>();
+const WARN_THROTTLE_MS = 60_000; // Only log same warning once per minute
+
+function throttledWarn(key: string, message: string): void {
+  const now = Date.now();
+  const last = warnThrottleMap.get(key) ?? 0;
+  if (now - last < WARN_THROTTLE_MS) return;
+  warnThrottleMap.set(key, now);
+  console.warn(message);
+}
+
+// Track if relay warning has been shown (only show once per session)
+let relayWarningShown = false;
+
 export function sanitizeSymbol(raw: string): string {
   return raw.trim().replace(/\s+/g, '').slice(0, 32).toUpperCase();
 }
@@ -204,17 +222,20 @@ export async function fetchYahooQuote(
       const data: YahooChartResponse = await resp.json();
       const parsed = parseYahooChartResponse(data);
       if (parsed) return parsed;
-    } else {
-      console.warn(`[Yahoo] ${symbol} direct HTTP ${resp.status}`);
+    } else if (resp.status !== 429) {
+      throttledWarn(`yahoo-direct-${symbol}`, `[Yahoo] ${symbol} direct HTTP ${resp.status}`);
     }
   } catch (err) {
-    console.warn(`[Yahoo] ${symbol} direct error:`, (err as Error).message);
+    throttledWarn(`yahoo-direct-err-${symbol}`, `[Yahoo] ${symbol} direct error: ${(err as Error).message}`);
   }
 
   // Fallback: Railway relay (different IP, not rate-limited by Yahoo)
   const relayBase = getRelayBaseUrl();
   if (!relayBase) {
-    console.warn(`[Yahoo] ${symbol} relay skipped: WS_RELAY_URL not set`);
+    if (!relayWarningShown) {
+      relayWarningShown = true;
+      console.warn('[Yahoo] WS_RELAY_URL not set - relay fallback disabled (this message shown once)');
+    }
     return null;
   }
   try {
@@ -224,13 +245,13 @@ export async function fetchYahooQuote(
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
     if (!resp.ok) {
-      console.warn(`[Yahoo] ${symbol} relay HTTP ${resp.status}: ${await resp.text().catch(() => '')}`);
+      throttledWarn(`yahoo-relay-${symbol}`, `[Yahoo] ${symbol} relay HTTP ${resp.status}`);
       return null;
     }
     const data: YahooChartResponse = await resp.json();
     return parseYahooChartResponse(data);
   } catch (err) {
-    console.warn(`[Yahoo] ${symbol} relay error:`, (err as Error).message);
+    throttledWarn(`yahoo-relay-err-${symbol}`, `[Yahoo] ${symbol} relay error: ${(err as Error).message}`);
     return null;
   }
 }

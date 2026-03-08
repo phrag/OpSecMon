@@ -111,8 +111,10 @@ export const DEFAULT_MAP_LAYERS: MapLayers = {
   dayNight: false,
   cyberThreats: false,
   // Additional required properties
-
   ciiChoropleth: false,
+  // Cyber intelligence layers
+  ransomwareVictims: false,
+  aptGroups: false,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -171,8 +173,10 @@ export const MOBILE_DEFAULT_MAP_LAYERS: MapLayers = {
   dayNight: false,
   cyberThreats: false,
   // Additional required properties
-
   ciiChoropleth: false,
+  // Cyber intelligence layers
+  ransomwareVictims: false,
+  aptGroups: false,
 };
 
 export const VARIANT_CONFIG: VariantConfig = {

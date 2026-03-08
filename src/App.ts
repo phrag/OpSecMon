@@ -238,6 +238,8 @@ export class App {
       latestClusters: [],
       intelligenceCache: {},
       cyberThreatsCache: null,
+      ransomwareVictimsCache: null,
+      aptGroupsCache: null,
       disabledSources,
       currentTimeRange: '7d',
       inFlight: new Set(),

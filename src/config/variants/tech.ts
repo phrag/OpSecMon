@@ -268,6 +268,9 @@ export const DEFAULT_MAP_LAYERS: MapLayers = {
   miningSites: false,
   processingPlants: false,
   commodityPorts: false,
+  // Cyber intelligence layers
+  ransomwareVictims: false,
+  aptGroups: false,
 };
 
 // Mobile defaults for tech variant
@@ -326,6 +329,9 @@ export const MOBILE_DEFAULT_MAP_LAYERS: MapLayers = {
   miningSites: false,
   processingPlants: false,
   commodityPorts: false,
+  // Cyber intelligence layers
+  ransomwareVictims: false,
+  aptGroups: false,
 };
 
 export const VARIANT_CONFIG: VariantConfig = {

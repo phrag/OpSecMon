@@ -135,6 +135,8 @@ const layers = {
   miningSites: false,
   processingPlants: false,
   commodityPorts: false,
+  ransomwareVictims: false,
+  aptGroups: false,
 };
 
 await initI18n();

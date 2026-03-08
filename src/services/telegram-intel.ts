@@ -42,16 +42,40 @@ function telegramFeedUrl(limit: number): string {
   return isDesktopRuntime() ? proxyUrl(path) : path;
 }
 
+const DISABLED_RESPONSE: TelegramFeedResponse = {
+  source: 'telegram',
+  earlySignal: false,
+  enabled: false,
+  count: 0,
+  updatedAt: null,
+  items: [],
+};
+
 export async function fetchTelegramFeed(limit = 50): Promise<TelegramFeedResponse> {
   if (cachedResponse && Date.now() - cachedAt < CACHE_TTL) return cachedResponse;
 
-  const res = await fetch(telegramFeedUrl(limit));
-  if (!res.ok) throw new Error(`Telegram feed ${res.status}`);
+  try {
+    const res = await fetch(telegramFeedUrl(limit));
+    
+    if (res.status === 503) {
+      cachedResponse = DISABLED_RESPONSE;
+      cachedAt = Date.now();
+      return DISABLED_RESPONSE;
+    }
+    
+    if (!res.ok) {
+      console.warn(`[Telegram] Feed returned ${res.status}`);
+      return DISABLED_RESPONSE;
+    }
 
-  const json: TelegramFeedResponse = await res.json();
-  cachedResponse = json;
-  cachedAt = Date.now();
-  return json;
+    const json: TelegramFeedResponse = await res.json();
+    cachedResponse = json;
+    cachedAt = Date.now();
+    return json;
+  } catch (error) {
+    console.warn('[Telegram] Feed fetch failed:', error);
+    return DISABLED_RESPONSE;
+  }
 }
 
 export function formatTelegramTime(ts: string): string {

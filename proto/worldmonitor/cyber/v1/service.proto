@@ -4,14 +4,37 @@ package worldmonitor.cyber.v1;
 
 import "sebuf/http/annotations.proto";
 import "worldmonitor/cyber/v1/list_cyber_threats.proto";
+import "worldmonitor/cyber/v1/ransomware.proto";
+import "worldmonitor/cyber/v1/cve.proto";
+import "worldmonitor/cyber/v1/breach.proto";
 
 // CyberService provides APIs for cyber threat intelligence aggregated from
-// Feodo, URLhaus, OTX, AbuseIPDB, and C2Intel.
+// Feodo, URLhaus, OTX, AbuseIPDB, C2Intel, Ransomware.live, NVD, and HIBP.
 service CyberService {
   option (sebuf.http.service_config) = {base_path: "/api/cyber/v1"};
 
   // ListCyberThreats retrieves threat indicators from multiple intelligence sources.
   rpc ListCyberThreats(ListCyberThreatsRequest) returns (ListCyberThreatsResponse) {
     option (sebuf.http.config) = {path: "/list-cyber-threats", method: HTTP_METHOD_GET};
+  }
+
+  // ListRansomwareGroups retrieves active ransomware groups from Ransomware.live.
+  rpc ListRansomwareGroups(ListRansomwareGroupsRequest) returns (ListRansomwareGroupsResponse) {
+    option (sebuf.http.config) = {path: "/list-ransomware-groups", method: HTTP_METHOD_GET};
+  }
+
+  // ListRansomwareVictims retrieves recent ransomware victims from Ransomware.live.
+  rpc ListRansomwareVictims(ListRansomwareVictimsRequest) returns (ListRansomwareVictimsResponse) {
+    option (sebuf.http.config) = {path: "/list-ransomware-victims", method: HTTP_METHOD_GET};
+  }
+
+  // ListCVEs retrieves recent CVEs from the NVD.
+  rpc ListCVEs(ListCVEsRequest) returns (ListCVEsResponse) {
+    option (sebuf.http.config) = {path: "/list-cves", method: HTTP_METHOD_GET};
+  }
+
+  // ListBreaches retrieves data breaches from HIBP.
+  rpc ListBreaches(ListBreachesRequest) returns (ListBreachesResponse) {
+    option (sebuf.http.config) = {path: "/list-breaches", method: HTTP_METHOD_GET};
   }
 }

@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package worldmonitor.cyber.v1;
+
+import "sebuf/http/annotations.proto";
+
+// DataBreach represents a known data breach incident.
+message DataBreach {
+  // Unique breach identifier/name.
+  string name = 1;
+  // Display title of the breach.
+  string title = 2;
+  // Domain associated with the breach.
+  string domain = 3;
+  // Date of the breach (Unix epoch ms).
+  int64 breach_date = 4 [(sebuf.http.int64_encoding) = INT64_ENCODING_NUMBER];
+  // Date added to HIBP (Unix epoch ms).
+  int64 added_date = 5 [(sebuf.http.int64_encoding) = INT64_ENCODING_NUMBER];
+  // Date last modified (Unix epoch ms).
+  int64 modified_date = 6 [(sebuf.http.int64_encoding) = INT64_ENCODING_NUMBER];
+  // Number of pwned accounts.
+  int64 pwn_count = 7 [(sebuf.http.int64_encoding) = INT64_ENCODING_NUMBER];
+  // Description of the breach.
+  string description = 8;
+  // Types of data compromised.
+  repeated string data_classes = 9;
+  // Whether the breach is verified.
+  bool is_verified = 10;
+  // Whether the breach is fabricated/fake.
+  bool is_fabricated = 11;
+  // Whether the data is from a sensitive site.
+  bool is_sensitive = 12;
+  // Whether the breach has been retired.
+  bool is_retired = 13;
+  // Whether the breach is spam list related.
+  bool is_spam_list = 14;
+  // Logo URL.
+  string logo_path = 15;
+}
+
+// ListBreachesRequest contains parameters for listing data breaches.
+message ListBreachesRequest {
+  // Filter by days since breach was added (default 90).
+  int32 days = 1;
+  // Filter by verified only.
+  bool verified_only = 2;
+  // Page size (default 50, max 100).
+  int32 page_size = 3;
+  // Cursor for pagination.
+  string cursor = 4;
+}
+
+// ListBreachesResponse contains the list of data breaches.
+message ListBreachesResponse {
+  // List of breaches.
+  repeated DataBreach breaches = 1;
+  // Total count.
+  int32 total_count = 2;
+  // Next cursor for pagination.
+  string next_cursor = 3;
+}
