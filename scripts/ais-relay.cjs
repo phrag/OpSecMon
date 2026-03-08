@@ -1801,13 +1801,23 @@ function cyberToProto(t) {
 function cyberHttpGetJson(url, reqHeaders, timeoutMs) {
   return new Promise((resolve) => {
     const req = https.get(url, { headers: { 'User-Agent': CHROME_UA, ...reqHeaders }, timeout: timeoutMs || 10000 }, (resp) => {
-      if (resp.statusCode < 200 || resp.statusCode >= 300) { resp.resume(); return resolve(null); }
+      if (resp.statusCode < 200 || resp.statusCode >= 300) {
+        const chunks = [];
+        resp.on('data', (c) => chunks.push(c));
+        resp.on('end', () => {
+          const body = Buffer.concat(chunks).toString().slice(0, 200);
+          console.warn(`[cyberHttpGetJson] HTTP ${resp.statusCode} for ${url.split('?')[0]}: ${body}`);
+          resolve(null);
+        });
+        resp.on('error', () => { console.warn(`[cyberHttpGetJson] HTTP ${resp.statusCode} for ${url.split('?')[0]}`); resolve(null); });
+        return;
+      }
       const chunks = [];
       resp.on('data', (c) => chunks.push(c));
       resp.on('end', () => { try { resolve(JSON.parse(Buffer.concat(chunks).toString())); } catch { resolve(null); } });
     });
-    req.on('error', () => resolve(null));
-    req.on('timeout', () => { req.destroy(); resolve(null); });
+    req.on('error', (e) => { console.warn(`[cyberHttpGetJson] error for ${url.split('?')[0]}: ${e.message}`); resolve(null); });
+    req.on('timeout', () => { console.warn(`[cyberHttpGetJson] TIMEOUT for ${url.split('?')[0]}`); req.destroy(); resolve(null); });
   });
 }
 function cyberHttpGetText(url, reqHeaders, timeoutMs) {
