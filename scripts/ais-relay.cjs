@@ -80,6 +80,10 @@ const RELAY_RSS_RATE_LIMIT_MAX = Number.isFinite(Number(process.env.RELAY_RSS_RA
 const RELAY_LOG_THROTTLE_MS = Math.max(1000, Number(process.env.RELAY_LOG_THROTTLE_MS || 10000));
 const ALLOW_VERCEL_PREVIEW_ORIGINS = process.env.ALLOW_VERCEL_PREVIEW_ORIGINS === 'true';
 
+// OpenSky proxy — routes through residential proxy to avoid Railway IP blocks
+const OPENSKY_PROXY_AUTH = process.env.OPENSKY_PROXY_AUTH || process.env.OREF_PROXY_AUTH || '';
+const OPENSKY_PROXY_ENABLED = !!OPENSKY_PROXY_AUTH;
+
 // OREF (Israel Home Front Command) siren alerts — fetched via HTTP proxy (Israel exit)
 const OREF_PROXY_AUTH = process.env.OREF_PROXY_AUTH || ''; // format: user:pass@host:port
 const OREF_ALERTS_URL = 'https://www.oref.org.il/WarningMessages/alert/alerts.json';
@@ -4491,21 +4495,95 @@ async function getOpenSkyToken() {
   }
 }
 
-function _attemptOpenSkyTokenFetch(clientId, clientSecret) {
-  return new Promise((resolve) => {
-    const postData = `grant_type=client_credentials&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}`;
+function _openskyProxyConnect(targetHost, targetPort, timeoutMs = 10000) {
+  if (!OPENSKY_PROXY_ENABLED) return Promise.resolve(null);
+  const atIdx = OPENSKY_PROXY_AUTH.lastIndexOf('@');
+  if (atIdx === -1) return Promise.resolve(null);
+  const userPass = OPENSKY_PROXY_AUTH.substring(0, atIdx);
+  const hostPort = OPENSKY_PROXY_AUTH.substring(atIdx + 1);
+  const colonIdx = hostPort.lastIndexOf(':');
+  const proxyHost = hostPort.substring(0, colonIdx);
+  const proxyPort = parseInt(hostPort.substring(colonIdx + 1), 10);
 
+  return new Promise((resolve, reject) => {
+    const connectReq = http.request({
+      host: proxyHost,
+      port: proxyPort,
+      method: 'CONNECT',
+      path: `${targetHost}:${targetPort}`,
+      headers: {
+        'Host': `${targetHost}:${targetPort}`,
+        'Proxy-Authorization': 'Basic ' + Buffer.from(userPass).toString('base64'),
+      },
+      timeout: timeoutMs,
+    });
+    connectReq.on('connect', (res, socket) => {
+      if (res.statusCode !== 200) {
+        socket.destroy();
+        return reject(new Error(`CONNECT ${res.statusCode}`));
+      }
+      const tls = require('tls');
+      const tlsSocket = tls.connect({ socket, servername: targetHost }, () => {
+        resolve(tlsSocket);
+      });
+      tlsSocket.on('error', reject);
+    });
+    connectReq.on('error', reject);
+    connectReq.on('timeout', () => { connectReq.destroy(); reject(new Error('CONNECT timeout')); });
+    connectReq.end();
+  });
+}
+
+function _attemptOpenSkyTokenFetch(clientId, clientSecret) {
+  const postData = `grant_type=client_credentials&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}`;
+  const reqHeaders = {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'Content-Length': Buffer.byteLength(postData),
+    'User-Agent': 'WorldMonitor/1.0',
+  };
+
+  if (OPENSKY_PROXY_ENABLED) {
+    return _openskyProxyConnect('auth.opensky-network.org', 443).then((tlsSocket) => {
+      return new Promise((resolve) => {
+        const req = https.request({
+          socket: tlsSocket,
+          hostname: 'auth.opensky-network.org',
+          path: '/auth/realms/opensky-network/protocol/openid-connect/token',
+          method: 'POST',
+          headers: reqHeaders,
+          timeout: 10000,
+        }, (res) => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            try {
+              const json = JSON.parse(data);
+              if (json.access_token) {
+                resolve({ token: json.access_token, expiresIn: json.expires_in || 1800 });
+              } else {
+                resolve({ error: json.error || 'no_access_token', status: res.statusCode });
+              }
+            } catch (e) {
+              resolve({ error: `parse: ${e.message}`, status: res.statusCode });
+            }
+          });
+        });
+        req.on('error', (err) => resolve({ error: `${err.code || 'UNKNOWN'}: ${err.message}` }));
+        req.on('timeout', () => { req.destroy(); resolve({ error: 'TIMEOUT' }); });
+        req.write(postData);
+        req.end();
+      });
+    }).catch((err) => ({ error: `PROXY: ${err.message}` }));
+  }
+
+  return new Promise((resolve) => {
     const req = https.request({
       hostname: 'auth.opensky-network.org',
       port: 443,
       family: 4,
       path: '/auth/realms/opensky-network/protocol/openid-connect/token',
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Content-Length': Buffer.byteLength(postData),
-        'User-Agent': 'WorldMonitor/1.0',
-      },
+      headers: reqHeaders,
       timeout: 10000
     }, (res) => {
       let data = '';
@@ -4574,14 +4652,37 @@ async function _fetchOpenSkyToken(clientId, clientSecret) {
 
 // Promisified upstream OpenSky fetch (single request)
 function _openskyRawFetch(url, token) {
+  const parsed = new URL(url);
+  const reqHeaders = {
+    'Accept': 'application/json',
+    'User-Agent': 'WorldMonitor/1.0',
+    'Authorization': `Bearer ${token}`,
+  };
+
+  if (OPENSKY_PROXY_ENABLED) {
+    return _openskyProxyConnect(parsed.hostname, 443, 15000).then((tlsSocket) => {
+      return new Promise((resolve) => {
+        const request = https.get({
+          socket: tlsSocket,
+          hostname: parsed.hostname,
+          path: parsed.pathname + parsed.search,
+          headers: reqHeaders,
+          timeout: 15000,
+        }, (response) => {
+          let data = '';
+          response.on('data', chunk => data += chunk);
+          response.on('end', () => resolve({ status: response.statusCode || 502, data }));
+        });
+        request.on('error', (err) => resolve({ status: 0, data: null, error: err }));
+        request.on('timeout', () => { request.destroy(); resolve({ status: 504, data: null, error: new Error('timeout') }); });
+      });
+    }).catch((err) => ({ status: 0, data: null, error: new Error(`PROXY: ${err.message}`) }));
+  }
+
   return new Promise((resolve) => {
     const request = https.get(url, {
       family: 4,
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'WorldMonitor/1.0',
-        'Authorization': `Bearer ${token}`,
-      },
+      headers: reqHeaders,
       timeout: 15000,
     }, (response) => {
       let data = '';
@@ -5774,7 +5875,7 @@ const server = http.createServer(async (req, res) => {
     const clientId = process.env.OPENSKY_CLIENT_ID;
     const clientSecret = process.env.OPENSKY_CLIENT_SECRET;
 
-    diag.steps.push({ step: 'env_check', hasClientId: !!clientId, hasClientSecret: !!clientSecret });
+    diag.steps.push({ step: 'env_check', hasClientId: !!clientId, hasClientSecret: !!clientSecret, proxyEnabled: OPENSKY_PROXY_ENABLED });
     diag.steps.push({
       step: 'auth_state',
       cachedToken: !!openskyToken,
@@ -6238,7 +6339,7 @@ function connectUpstream() {
 const wss = new WebSocketServer({ server });
 
 server.listen(PORT, () => {
-  console.log(`[Relay] WebSocket relay on port ${PORT}`);
+  console.log(`[Relay] WebSocket relay on port ${PORT} (OpenSky: ${OPENSKY_PROXY_ENABLED ? 'via proxy' : 'direct'})`);
   startTelegramPollLoop();
   startOrefPollLoop();
   startUcdpSeedLoop();

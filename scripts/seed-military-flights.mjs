@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { loadEnvFile, CHROME_UA, getRedisCredentials, acquireLock, releaseLock, withRetry, writeFreshnessMetadata, logSeedResult, verifySeedKey } from './_seed-utils.mjs';
+import { execFileSync } from 'node:child_process';
 
 loadEnvFile(import.meta.url);
 
@@ -15,6 +16,10 @@ const THEATER_POSTURE_BACKUP_KEY = 'theater-posture:sebuf:backup:v1';
 const THEATER_POSTURE_LIVE_TTL = 900;
 const THEATER_POSTURE_STALE_TTL = 86400;
 const THEATER_POSTURE_BACKUP_TTL = 604800;
+
+// ── Proxy Config ─────────────────────────────────────────
+const OPENSKY_PROXY_AUTH = process.env.OPENSKY_PROXY_AUTH || process.env.OREF_PROXY_AUTH || '';
+const PROXY_ENABLED = !!OPENSKY_PROXY_AUTH;
 
 // ── Query Regions ──────────────────────────────────────────
 const QUERY_REGIONS = [
@@ -218,6 +223,31 @@ function getNearbyHotspot(lat, lon) {
   return null;
 }
 
+// ── HTTP CONNECT Tunnel via Residential Proxy ──────────────
+function redactProxy(msg) {
+  return String(msg || '').replace(/\/\/[^@]+@/g, '//<redacted>@');
+}
+
+function curlFetchJson(url, { headers = {}, proxy = false, timeout = 15 } = {}) {
+  const args = ['-sS', '--compressed', '--max-time', String(timeout)];
+  if (proxy && PROXY_ENABLED) {
+    args.push('-x', `http://${OPENSKY_PROXY_AUTH}`);
+  }
+  for (const [k, v] of Object.entries(headers)) {
+    args.push('-H', `${k}: ${v}`);
+  }
+  args.push(url);
+  try {
+    const raw = execFileSync('curl', args, { encoding: 'utf8', timeout: (timeout + 5) * 1000, stdio: ['pipe', 'pipe', 'pipe'] });
+    return JSON.parse(raw);
+  } catch (e) {
+    if (e.status) {
+      throw new Error(`curl exit ${e.status} for ${url}`);
+    }
+    throw new Error(redactProxy(e.message));
+  }
+}
+
 // ── Data Sources ───────────────────────────────────────────
 const OPENSKY_BASE = 'https://opensky-network.org/api';
 const WINGBITS_BASE = 'https://customer-api.wingbits.com/v1/flights';
@@ -228,30 +258,60 @@ async function fetchOpenSkyAuthenticated(region) {
   if (!username || !password) return null;
 
   const params = `lamin=${region.lamin}&lamax=${region.lamax}&lomin=${region.lomin}&lomax=${region.lomax}`;
+  const url = `${OPENSKY_BASE}/states/all?${params}`;
+
+  if (PROXY_ENABLED) {
+    const authHeader = 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64');
+    const data = curlFetchJson(url, {
+      headers: { Authorization: authHeader, 'User-Agent': CHROME_UA, Accept: 'application/json' },
+      proxy: true,
+    });
+    return data.states || [];
+  }
+
   const authHeader = 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64');
-  const resp = await fetch(`${OPENSKY_BASE}/states/all?${params}`, {
+  const resp = await fetch(url, {
     headers: { Authorization: authHeader, 'User-Agent': CHROME_UA, Accept: 'application/json' },
     signal: AbortSignal.timeout(15_000),
   });
-  if (!resp.ok) throw new Error(`OpenSky auth HTTP ${resp.status}`);
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => '');
+    throw new Error(`OpenSky auth HTTP ${resp.status}: ${body.substring(0, 200)}`);
+  }
   const data = await resp.json();
   return data.states || [];
 }
 
 async function fetchOpenSkyAnonymous(region) {
   const params = `lamin=${region.lamin}&lamax=${region.lamax}&lomin=${region.lomin}&lomax=${region.lomax}`;
-  const resp = await fetch(`${OPENSKY_BASE}/states/all?${params}`, {
+  const url = `${OPENSKY_BASE}/states/all?${params}`;
+
+  if (PROXY_ENABLED) {
+    const data = curlFetchJson(url, {
+      headers: { 'User-Agent': CHROME_UA, Accept: 'application/json' },
+      proxy: true,
+    });
+    return data.states || [];
+  }
+
+  const resp = await fetch(url, {
     headers: { 'User-Agent': CHROME_UA, Accept: 'application/json' },
     signal: AbortSignal.timeout(15_000),
   });
-  if (!resp.ok) throw new Error(`OpenSky anon HTTP ${resp.status}`);
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => '');
+    throw new Error(`OpenSky anon HTTP ${resp.status}: ${body.substring(0, 200)}`);
+  }
   const data = await resp.json();
   return data.states || [];
 }
 
 async function fetchWingbits() {
   const apiKey = process.env.WINGBITS_API_KEY;
-  if (!apiKey) return [];
+  if (!apiKey) {
+    console.log('  [Wingbits] No WINGBITS_API_KEY — skipped');
+    return [];
+  }
 
   const areas = QUERY_REGIONS.map((r) => ({
     alias: r.name,
@@ -263,14 +323,39 @@ async function fetchWingbits() {
     unit: 'nm',
   }));
 
+  console.log(`  [Wingbits] POST ${WINGBITS_BASE} with ${areas.length} areas: ${areas.map(a => `${a.alias}(${a.w}x${a.h}nm)`).join(', ')}`);
+
   const resp = await fetch(WINGBITS_BASE, {
     method: 'POST',
     headers: { 'x-api-key': apiKey, Accept: 'application/json', 'Content-Type': 'application/json', 'User-Agent': CHROME_UA },
     body: JSON.stringify(areas),
-    signal: AbortSignal.timeout(15_000),
+    signal: AbortSignal.timeout(20_000),
   });
-  if (!resp.ok) throw new Error(`Wingbits HTTP ${resp.status}`);
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => '');
+    throw new Error(`Wingbits HTTP ${resp.status}: ${body.substring(0, 200)}`);
+  }
   const data = await resp.json();
+
+  if (!Array.isArray(data)) {
+    console.warn(`  [Wingbits] Unexpected response shape: ${typeof data}, keys: ${Object.keys(data || {}).join(',')}`);
+    return [];
+  }
+  console.log(`  [Wingbits] Response: ${data.length} area results`);
+  for (let i = 0; i < data.length; i++) {
+    const ar = data[i];
+    const flightList = ar.flights || ar;
+    const count = Array.isArray(flightList) ? flightList.length : 0;
+    console.log(`  [Wingbits]   area[${i}] ${areas[i]?.alias || '?'}: ${count} flights, keys: ${Object.keys(ar || {}).join(',')}`);
+    if (count > 0 && count <= 3) {
+      for (const f of (Array.isArray(flightList) ? flightList : [])) {
+        console.log(`  [Wingbits]     sample: ${JSON.stringify(f).substring(0, 200)}`);
+      }
+    } else if (count > 3) {
+      const f = (Array.isArray(flightList) ? flightList : [])[0];
+      console.log(`  [Wingbits]     sample[0]: ${JSON.stringify(f).substring(0, 200)}`);
+    }
+  }
 
   const states = [];
   const seenIds = new Set();
@@ -281,7 +366,6 @@ async function fetchWingbits() {
       if (!icao24 || seenIds.has(icao24)) continue;
       seenIds.add(icao24);
       const callsign = (f.f || f.callsign || f.flight || '').trim();
-      // Convert to OpenSky state array format for unified processing
       states.push([
         icao24,
         callsign,
@@ -290,11 +374,11 @@ async function fetchWingbits() {
         f.ts ? f.ts / 1000 : Date.now() / 1000,
         f.lo || f.longitude || f.lon || f.lng,
         f.la || f.latitude || f.lat,
-        (f.ab || f.altitude || f.alt || 0) * 0.3048,       // ft → meters
+        (f.ab || f.altitude || f.alt || 0) * 0.3048,
         f.gr || f.onGround || false,
-        (f.gs || f.groundSpeed || f.speed || 0) * 0.514444, // kts → m/s
+        (f.gs || f.groundSpeed || f.speed || 0) * 0.514444,
         f.th || f.heading || f.track || 0,
-        (f.vr || f.verticalRate || 0) * 0.00508,            // ft/min → m/s
+        (f.vr || f.verticalRate || 0) * 0.00508,
         null,
         null,
         f.sq || f.squawk || null,
@@ -313,7 +397,6 @@ async function fetchAllStates() {
   for (const region of QUERY_REGIONS) {
     let states = null;
 
-    // Tier 1: OpenSky authenticated
     try {
       states = await fetchOpenSkyAuthenticated(region);
       if (states && states.length > 0) {
@@ -321,10 +404,9 @@ async function fetchAllStates() {
         console.log(`  [OpenSky Auth] ${region.name}: ${states.length} states`);
       }
     } catch (e) {
-      console.warn(`  [OpenSky Auth] ${region.name}: ${e.message}`);
+      console.warn(`  [OpenSky Auth] ${region.name}: ${redactProxy(e.message)}`);
     }
 
-    // Tier 2: OpenSky anonymous
     if (!states || states.length === 0) {
       try {
         states = await fetchOpenSkyAnonymous(region);
@@ -333,7 +415,7 @@ async function fetchAllStates() {
           console.log(`  [OpenSky Anon] ${region.name}: ${states.length} states`);
         }
       } catch (e) {
-        console.warn(`  [OpenSky Anon] ${region.name}: ${e.message}`);
+        console.warn(`  [OpenSky Anon] ${region.name}: ${redactProxy(e.message)}`);
       }
     }
 
@@ -347,7 +429,6 @@ async function fetchAllStates() {
     }
   }
 
-  // Tier 3: Wingbits (supplements or full fallback)
   try {
     const wbStates = await fetchWingbits();
     let added = 0;
@@ -363,8 +444,6 @@ async function fetchAllStates() {
       if (source === 'none') source = 'wingbits';
     } else if (wbStates.length > 0) {
       console.log(`  [Wingbits] ${wbStates.length} states (all dupes of OpenSky)`);
-    } else {
-      console.log('  [Wingbits] 0 states returned');
     }
   } catch (e) {
     console.warn(`  [Wingbits] ${e.message}`);
@@ -482,7 +561,7 @@ async function main() {
   const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const { url, token } = getRedisCredentials();
 
-  console.log('=== military:flights Seed ===');
+  console.log(`=== military:flights Seed (proxy: ${PROXY_ENABLED ? 'enabled' : 'direct'}) ===`);
 
   const locked = await acquireLock('military:flights', runId, 120_000);
   if (!locked) {
@@ -515,7 +594,6 @@ async function main() {
     const verified = await verifySeedKey(LIVE_KEY);
     console.log(`  Verified: ${verified ? 'yes' : 'NO'}`);
 
-    // Theater posture passthrough
     const theaterFlights = flights.map((f) => ({
       id: f.hexCode || f.id,
       callsign: f.callsign,
