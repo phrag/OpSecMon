@@ -825,8 +825,6 @@ const CYBER_PANELS: Record<string, PanelConfig> = {
   'cyber-news': { name: 'Cyber Security News', enabled: true, priority: 1 },
   'security-blogs': { name: 'Security Blogs', enabled: true, priority: 1 },
   'gdelt-intel': { name: 'Threat Intelligence', enabled: true, priority: 1 },
-  'telegram-intel': { name: 'Telegram Intel', enabled: true, priority: 1 },
-  security: { name: 'Cybersecurity', enabled: true, priority: 2 },
   outages: { name: 'Internet Outages', enabled: true, priority: 2 },
   cascade: { name: 'Infrastructure Cascade', enabled: true, priority: 2 },
   monitors: { name: 'My Monitors', enabled: true, priority: 2 },
@@ -1114,7 +1112,7 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
   },
   cyberOsint: {
     labelKey: 'header.panelCatOsint',
-    panelKeys: ['osint', 'gdelt-intel', 'telegram-intel', 'cyber-news', 'security-blogs'],
+    panelKeys: ['osint', 'gdelt-intel', 'cyber-news', 'security-blogs'],
     variants: ['cyber'],
   },
   cyberInfra: {
