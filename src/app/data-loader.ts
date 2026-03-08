@@ -181,7 +181,7 @@ function protoItemToNewsItem(p: ProtoNewsItem): NewsItem {
   };
 }
 
-const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === 'true';
+const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === 'true' || SITE_VARIANT === 'cyber';
 
 export interface DataLoaderCallbacks {
   renderCriticalBanner: (postures: TheaterPostureSummary[]) => void;
