@@ -103,14 +103,13 @@ export async function listCVEs(
       async () => {
         const now = new Date();
         const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-        const pubStartDate = startDate.toISOString().split('.')[0];
-        const pubEndDate = now.toISOString().split('.')[0];
+        const pubStartDate = startDate.toISOString().split('.')[0] ?? '';
+        const pubEndDate = now.toISOString().split('.')[0] ?? '';
 
-        const params = new URLSearchParams({
-          pubStartDate,
-          pubEndDate,
-          resultsPerPage: '200',
-        });
+        const params = new URLSearchParams();
+        params.set('pubStartDate', pubStartDate);
+        params.set('pubEndDate', pubEndDate);
+        params.set('resultsPerPage', '200');
 
         if (minCvss >= 7) {
           params.set('cvssV3Severity', 'CRITICAL');

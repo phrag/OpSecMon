@@ -315,7 +315,6 @@ export const TECH_HQS: TechHQ[] = [
   { id: 'twitter', company: 'X (Twitter)', city: 'San Francisco', country: 'USA', lat: 37.7769, lon: -122.4158, type: 'public' },
   { id: 'pinterest', company: 'Pinterest', city: 'San Francisco', country: 'USA', lat: 37.7689, lon: -122.4126, type: 'public' },
   { id: 'snap', company: 'Snap', city: 'Santa Monica', country: 'USA', lat: 34.0195, lon: -118.4912, type: 'public' },
-  { id: 'discord', company: 'Discord', city: 'San Francisco', country: 'USA', lat: 37.7809, lon: -122.3914, type: 'unicorn' },
   { id: 'reddit', company: 'Reddit', city: 'San Francisco', country: 'USA', lat: 37.7801, lon: -122.4037, type: 'public' },
   { id: 'linkedin', company: 'LinkedIn', city: 'Sunnyvale', country: 'USA', lat: 37.4257, lon: -122.0712, type: 'public' },
   { id: 'ebay', company: 'eBay', city: 'San Jose', country: 'USA', lat: 37.3653, lon: -121.9289, type: 'public' },
