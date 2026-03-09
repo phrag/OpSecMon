@@ -43,7 +43,7 @@ import type { ClimateAnomaly } from '@/services/climate';
 import type { GpsJamHex } from '@/services/gps-interference';
 import type { SatellitePosition } from '@/services/satellites';
 
-const SAT_COUNTRY_COLORS: Record<string, string> = { CN: '#ff2020', RU: '#ff8800', US: '#4488ff', EU: '#44cc44', KR: '#aa66ff', IL: '#00ccff', IN: '#ff66aa', JP: '#ffcc00', TR: '#ff4466', OTHER: '#ccccff' };
+const SAT_COUNTRY_COLORS: Record<string, string> = { CN: '#ff2020', RU: '#ff8800', US: '#4488ff', EU: '#44cc44', KR: '#aa66ff', IN: '#ff66aa', TR: '#ff4466', OTHER: '#ccccff' };
 
 // ─── Marker discriminated union ─────────────────────────────────────────────
 interface BaseMarker {
@@ -352,10 +352,16 @@ export class GlobeMap {
 
   private initialized = false;
   private destroyed = false;
+  private webglLost = false;
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private flushMaxTimer: ReturnType<typeof setTimeout> | null = null;
   private _pulseEnabled = true;
   private reversedRingCache = new Map<string, number[][][]>();
+
+  // Idle rendering: pause globe animation when nothing changes
+  private idleTimer: ReturnType<typeof setTimeout> | null = null;
+  private isGlobeAnimating = true;
+  private visibilityHandler: (() => void) | null = null;
 
   // Current data
   private hotspots: HotspotMarker[] = [];
@@ -539,10 +545,28 @@ export class GlobeMap {
 
     const canvas = this.container.querySelector('canvas');
     if (canvas) {
-      canvas.addEventListener('mousedown', pauseAutoRotate);
-      canvas.addEventListener('touchstart', pauseAutoRotate, { passive: true });
+      // Wake globe on any user interaction (idle rendering optimization)
+      const wakeOnInteraction = () => this.wakeGlobe();
+      canvas.addEventListener('mousedown', () => { pauseAutoRotate(); wakeOnInteraction(); });
+      canvas.addEventListener('touchstart', () => { pauseAutoRotate(); wakeOnInteraction(); }, { passive: true });
+      canvas.addEventListener('wheel', wakeOnInteraction, { passive: true });
+      let lastMoveWake = 0;
+      canvas.addEventListener('mousemove', () => {
+        const now = performance.now();
+        if (now - lastMoveWake > 500) { lastMoveWake = now; wakeOnInteraction(); }
+      }, { passive: true });
       canvas.addEventListener('mouseup', scheduleResumeAutoRotate);
       canvas.addEventListener('touchend', scheduleResumeAutoRotate);
+      canvas.addEventListener('webglcontextlost', (e) => {
+        e.preventDefault();
+        this.webglLost = true;
+        console.warn('[GlobeMap] WebGL context lost — will restore when browser recovers');
+      });
+      canvas.addEventListener('webglcontextrestored', () => {
+        this.webglLost = false;
+        console.info('[GlobeMap] WebGL context restored');
+        this.flushMarkers();
+      });
     }
 
     // Wire HTML marker layer
@@ -669,6 +693,10 @@ export class GlobeMap {
     this.flushArcs();
     this.flushPaths();
     this.flushPolygons();
+
+    // Idle rendering: pause animation when nothing is happening
+    this.setupVisibilityHandler();
+    this.scheduleIdlePause();
 
     // Load countries GeoJSON for CII choropleth
     getCountriesGeoJson().then(geojson => {
@@ -1225,7 +1253,7 @@ export class GlobeMap {
   // ─── Flush all current data to globe ──────────────────────────────────────
 
   private flushMarkers(): void {
-    if (!this.globe || !this.initialized || this.destroyed) return;
+    if (!this.globe || !this.initialized || this.destroyed || this.webglLost) return;
     if (this.renderPaused) { this.pendingFlushWhilePaused = true; return; }
 
     if (!this.flushMaxTimer) {
@@ -1244,7 +1272,8 @@ export class GlobeMap {
   }
 
   private flushMarkersImmediate(): void {
-    if (!this.globe || !this.initialized || this.destroyed) return;
+    if (!this.globe || !this.initialized || this.destroyed || this.webglLost) return;
+    this.wakeGlobe();
 
     const markers: GlobeMarker[] = [];
     if (this.layers.hotspots) markers.push(...this.hotspots);
@@ -1295,13 +1324,15 @@ export class GlobeMap {
   }
 
   private flushArcs(): void {
-    if (!this.globe || !this.initialized || this.destroyed) return;
+    if (!this.globe || !this.initialized || this.destroyed || this.webglLost) return;
+    this.wakeGlobe();
     const segments = this.layers.tradeRoutes ? this.tradeRouteSegments : [];
     (this.globe as any).arcsData(segments);
   }
 
   private flushPaths(): void {
-    if (!this.globe || !this.initialized || this.destroyed) return;
+    if (!this.globe || !this.initialized || this.destroyed || this.webglLost) return;
+    this.wakeGlobe();
     const showCables = this.layers.cables;
     const showPipelines = this.layers.pipelines;
     const paths = (showCables && showPipelines)
@@ -1334,7 +1365,8 @@ export class GlobeMap {
   }
 
   private flushPolygons(): void {
-    if (!this.globe || !this.initialized || this.destroyed) return;
+    if (!this.globe || !this.initialized || this.destroyed || this.webglLost) return;
+    this.wakeGlobe();
     const polys: GlobePolygon[] = [];
 
     if (this.layers.conflicts) {
@@ -1651,12 +1683,14 @@ export class GlobeMap {
   public setView(view: MapView): void {
     this.currentView = view;
     if (!this.globe) return;
+    this.wakeGlobe();
     const pov = GlobeMap.VIEW_POVS[view] ?? GlobeMap.VIEW_POVS.global;
     this.globe.pointOfView(pov, 1200);
   }
 
   public setCenter(lat: number, lon: number, zoom?: number): void {
     if (!this.globe) return;
+    this.wakeGlobe();
     // Map deck.gl zoom levels → globe.gl altitude
     // deck.gl: 2=world, 3=continent, 4=country, 5=region, 6+=city
     // globe.gl altitude: 1.8=full globe, 0.6=country, 0.15=city
@@ -1682,6 +1716,7 @@ export class GlobeMap {
 
   public resize(): void {
     if (!this.globe || this.destroyed) return;
+    this.wakeGlobe();
     this.applyRenderQuality(undefined, this.container.clientWidth, this.container.clientHeight);
   }
 
@@ -2096,21 +2131,21 @@ export class GlobeMap {
       this.cyanLight.position.set(-10, -10, -10);
       scene.add(this.cyanLight);
 
-      const outerGeo = new THREE.SphereGeometry(2.15, 64, 64);
+      const outerGeo = new THREE.SphereGeometry(2.15, 24, 24);
       const outerMat = new THREE.MeshBasicMaterial({
         color: 0x00d4ff, side: THREE.BackSide, transparent: true, opacity: 0.15,
       });
       this.outerGlow = new THREE.Mesh(outerGeo, outerMat);
       scene.add(this.outerGlow);
 
-      const innerGeo = new THREE.SphereGeometry(2.08, 64, 64);
+      const innerGeo = new THREE.SphereGeometry(2.08, 24, 24);
       const innerMat = new THREE.MeshBasicMaterial({
         color: 0x00a8cc, side: THREE.BackSide, transparent: true, opacity: 0.1,
       });
       this.innerGlow = new THREE.Mesh(innerGeo, innerMat);
       scene.add(this.innerGlow);
 
-      const starCount = 2000;
+      const starCount = 600;
       const starPositions = new Float32Array(starCount * 3);
       const starColors = new Float32Array(starCount * 3);
       for (let i = 0; i < starCount; i++) {
@@ -2132,14 +2167,19 @@ export class GlobeMap {
       this.starField = new THREE.Points(starGeo, starMat);
       scene.add(this.starField);
 
-      const animateExtras = () => {
-        if (this.destroyed) return;
-        if (this.outerGlow) this.outerGlow.rotation.y += 0.0003;
-        if (this.starField) this.starField.rotation.y += 0.00005;
-        this.extrasAnimFrameId = requestAnimationFrame(animateExtras);
-      };
-      animateExtras();
+      this.startExtrasLoop();
     } catch { /* cosmetic — ignore */ }
+  }
+
+  private startExtrasLoop(): void {
+    if (this.extrasAnimFrameId != null) return;
+    const animateExtras = () => {
+      if (this.destroyed) return;
+      if (this.outerGlow) this.outerGlow.rotation.y += 0.0003;
+      if (this.starField) this.starField.rotation.y += 0.00005;
+      this.extrasAnimFrameId = requestAnimationFrame(animateExtras);
+    };
+    animateExtras();
   }
 
   private removeEnhancedVisuals(): void {
@@ -2198,7 +2238,7 @@ export class GlobeMap {
   }
 
   private applyPerformanceProfile(profile: GlobePerformanceProfile): void {
-    if (!this.globe || !this.initialized || this.destroyed) return;
+    if (!this.globe || !this.initialized || this.destroyed || this.webglLost) return;
 
     const prevPulse = this._pulseEnabled;
     this._pulseEnabled = !profile.disablePulseAnimations;
@@ -2226,6 +2266,52 @@ export class GlobeMap {
     }
   }
 
+  // ─── Idle rendering control ──────────────────────────────────────────────
+  // globe.gl runs requestAnimationFrame at 60fps continuously.
+  // Pause when idle to save CPU; resume on interaction or data change.
+
+  private wakeGlobe(): void {
+    if (this.destroyed || !this.globe) return;
+    if (!this.isGlobeAnimating) {
+      this.isGlobeAnimating = true;
+      try { (this.globe as any).resumeAnimation?.(); } catch { /* best-effort */ }
+    }
+    this.scheduleIdlePause();
+  }
+
+  private scheduleIdlePause(): void {
+    if (this.idleTimer) clearTimeout(this.idleTimer);
+    // After 3 seconds of no interaction/data change, pause rendering
+    this.idleTimer = setTimeout(() => {
+      if (this.destroyed || !this.globe || this.renderPaused) return;
+      // Don't pause if auto-rotate is active (user expects continuous spin)
+      if (this.controls?.autoRotate) return;
+      this.isGlobeAnimating = false;
+      try { (this.globe as any).pauseAnimation?.(); } catch { /* best-effort */ }
+    }, 3000);
+  }
+
+  private setupVisibilityHandler(): void {
+    this.visibilityHandler = () => {
+      if (document.hidden) {
+        if (this.isGlobeAnimating && this.globe) {
+          this.isGlobeAnimating = false;
+          try { (this.globe as any).pauseAnimation?.(); } catch { /* ignore */ }
+        }
+        if (this.extrasAnimFrameId != null) {
+          cancelAnimationFrame(this.extrasAnimFrameId);
+          this.extrasAnimFrameId = null;
+        }
+      } else {
+        this.wakeGlobe();
+        if (this.outerGlow && this.extrasAnimFrameId == null) {
+          this.startExtrasLoop();
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', this.visibilityHandler);
+  }
+
   // ─── Destroy ──────────────────────────────────────────────────────────────
 
   public destroy(): void {
@@ -2235,6 +2321,11 @@ export class GlobeMap {
     this.unsubscribeGlobeTexture = null;
     this.unsubscribeVisualPreset?.();
     this.unsubscribeVisualPreset = null;
+    if (this.visibilityHandler) {
+      document.removeEventListener('visibilitychange', this.visibilityHandler);
+      this.visibilityHandler = null;
+    }
+    if (this.idleTimer) { clearTimeout(this.idleTimer); this.idleTimer = null; }
     this.destroyed = true;
     if (this.extrasAnimFrameId != null) {
       cancelAnimationFrame(this.extrasAnimFrameId);
