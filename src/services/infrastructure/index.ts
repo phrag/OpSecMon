@@ -137,7 +137,7 @@ const CATEGORY_MAP: Record<string, string> = {
   netlify: 'cloud', digitalocean: 'cloud', render: 'cloud', railway: 'cloud',
   github: 'dev', gitlab: 'dev', npm: 'dev', docker: 'dev', bitbucket: 'dev',
   circleci: 'dev', jira: 'dev', confluence: 'dev', linear: 'dev',
-  slack: 'comm', discord: 'comm', zoom: 'comm', notion: 'comm',
+  slack: 'comm', zoom: 'comm', notion: 'comm',
   openai: 'ai', anthropic: 'ai', replicate: 'ai',
   stripe: 'saas', twilio: 'saas', datadog: 'saas', sentry: 'saas', supabase: 'saas',
 };

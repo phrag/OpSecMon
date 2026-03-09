@@ -103,16 +103,60 @@ export class GdeltIntelPanel extends Panel {
 
   private renderArticles(articles: GdeltArticle[]): void {
     this.setErrorState(false);
-    if (articles.length === 0) {
+    let displayArticles = articles;
+    
+    if (articles.length === 0 && import.meta.env.DEV) {
+      displayArticles = this.getMockArticles();
+    }
+    
+    if (displayArticles.length === 0) {
       replaceChildren(this.content, h('div', { className: 'empty-state' }, t('components.gdelt.empty')));
       return;
     }
 
     replaceChildren(this.content,
       h('div', { className: 'gdelt-intel-articles' },
-        ...articles.map(article => this.buildArticle(article)),
+        ...displayArticles.map(article => this.buildArticle(article)),
       ),
     );
+  }
+
+  private getMockArticles(): GdeltArticle[] {
+    const now = new Date();
+    const formatDate = (hoursAgo: number) => {
+      const d = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
+      return d.toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '').replace('T', 'T');
+    };
+    
+    const topicMocks: Record<string, GdeltArticle[]> = {
+      military: [
+        { title: 'NATO conducts joint exercises in Baltic region amid heightened tensions', url: '#', source: 'Defense News', date: formatDate(1), tone: -1 },
+        { title: 'New satellite imagery reveals military buildup near contested border', url: '#', source: 'Reuters', date: formatDate(3), tone: -2 },
+        { title: 'Air defense systems deployed to protect critical infrastructure', url: '#', source: 'Jane\'s Defence', date: formatDate(5), tone: -1 },
+      ],
+      cyber: [
+        { title: 'Critical zero-day vulnerability discovered in enterprise VPN software', url: '#', source: 'SecurityWeek', date: formatDate(1), tone: -3 },
+        { title: 'State-sponsored hackers target energy sector with new malware strain', url: '#', source: 'Dark Reading', date: formatDate(2), tone: -2 },
+        { title: 'Ransomware group claims attack on major healthcare provider', url: '#', source: 'BleepingComputer', date: formatDate(4), tone: -3 },
+      ],
+      nuclear: [
+        { title: 'IAEA reports increased enrichment activity at monitored facilities', url: '#', source: 'AP News', date: formatDate(2), tone: -2 },
+        { title: 'Nuclear submarine fleet conducts routine patrol in Arctic waters', url: '#', source: 'Naval News', date: formatDate(6), tone: -1 },
+      ],
+      sanctions: [
+        { title: 'New sanctions package targets financial networks and shell companies', url: '#', source: 'Bloomberg', date: formatDate(1), tone: -1 },
+        { title: 'Treasury designates entities involved in sanctions evasion schemes', url: '#', source: 'Reuters', date: formatDate(4), tone: -1 },
+      ],
+      intelligence: [
+        { title: 'Intelligence agencies warn of increased cyber espionage activity', url: '#', source: 'The Guardian', date: formatDate(2), tone: -2 },
+        { title: 'New report details foreign influence operations targeting elections', url: '#', source: 'BBC', date: formatDate(5), tone: -2 },
+      ],
+      maritime: [
+        { title: 'Naval patrols increased in strategic shipping lanes', url: '#', source: 'Lloyd\'s List', date: formatDate(1), tone: -1 },
+        { title: 'Coast guard intercepts suspicious vessel near territorial waters', url: '#', source: 'Maritime Executive', date: formatDate(3), tone: -1 },
+      ],
+    };
+    return topicMocks[this.activeTopic.id] || topicMocks.cyber || [];
   }
 
   private buildArticle(article: GdeltArticle): HTMLElement {

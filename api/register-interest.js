@@ -104,7 +104,7 @@ async function sendConfirmationEmail(email, referralCode) {
                     <div style="background: #111; border: 1px solid #1a1a1a; padding: 16px; height: 100%;">
                       <div style="font-size: 20px; margin-bottom: 8px;">&#128232;</div>
                       <div style="font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 4px;">Delivered to You</div>
-                      <div style="font-size: 12px; color: #888; line-height: 1.4;">Slack, Telegram, WhatsApp, Email, Discord</div>
+                      <div style="font-size: 12px; color: #888; line-height: 1.4;">Slack, Telegram, WhatsApp, Email</div>
                     </div>
                   </td>
                   <td style="width: 50%; padding: 12px; vertical-align: top;">
@@ -168,7 +168,7 @@ async function sendConfirmationEmail(email, referralCode) {
             </div>
             <div style="border-top: 1px solid #1a1a1a; padding: 24px 32px; text-align: center;">
               <div style="margin-bottom: 16px;">
-                <a href="https://x.com/eliehabib" style="color: #666; text-decoration: none; font-size: 12px; margin: 0 12px;">X / Twitter</a>
+                <a href="https://github.com/phrag" style="color: #666; text-decoration: none; font-size: 12px; margin: 0 12px;">GitHub</a>
                 <a href="https://github.com/koala73/worldmonitor" style="color: #666; text-decoration: none; font-size: 12px; margin: 0 12px;">GitHub</a>
                 <a href="https://worldmonitor.app/pro" style="color: #666; text-decoration: none; font-size: 12px; margin: 0 12px;">Pro Waitlist</a>
               </div>

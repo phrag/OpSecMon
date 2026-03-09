@@ -158,7 +158,63 @@ export class OSINTPanel extends Panel {
       }
     }
 
+    if (items.length === 0 && import.meta.env.DEV) {
+      return this.getMockOsintItems();
+    }
+
     return items;
+  }
+
+  private getMockOsintItems(): OSINTItem[] {
+    const now = Date.now();
+    return [
+      {
+        id: 'mock-1',
+        source: 'gdelt',
+        title: 'Critical vulnerability discovered in enterprise VPN software affects thousands',
+        url: '#',
+        channel: 'SecurityWeek',
+        timestamp: new Date(now - 30 * 60 * 1000),
+        topic: 'cyber',
+      },
+      {
+        id: 'mock-2',
+        source: 'gdelt',
+        title: 'Ransomware group claims attack on major healthcare provider',
+        url: '#',
+        channel: 'BleepingComputer',
+        timestamp: new Date(now - 2 * 60 * 60 * 1000),
+        topic: 'cyber',
+      },
+      {
+        id: 'mock-3',
+        source: 'gdelt',
+        title: 'State-sponsored APT group targets defense contractors with new malware',
+        url: '#',
+        channel: 'The Hacker News',
+        timestamp: new Date(now - 4 * 60 * 60 * 1000),
+        topic: 'intelligence',
+      },
+      {
+        id: 'mock-4',
+        source: 'security',
+        title: 'CISA issues emergency directive for critical infrastructure operators',
+        url: '#',
+        channel: 'CISA',
+        timestamp: new Date(now - 6 * 60 * 60 * 1000),
+        topic: 'cyber',
+        tags: ['critical', 'infrastructure'],
+      },
+      {
+        id: 'mock-5',
+        source: 'gdelt',
+        title: 'Intelligence report reveals cyber espionage campaign targeting energy sector',
+        url: '#',
+        channel: 'Dark Reading',
+        timestamp: new Date(now - 8 * 60 * 60 * 1000),
+        topic: 'intelligence',
+      },
+    ];
   }
 
   public startPolling(intervalMs = 5 * 60 * 1000): void {
