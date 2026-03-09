@@ -37,6 +37,14 @@ import {
   AirlineIntelPanel,
   AviationCommandBar,
 } from '@/components';
+import { CyberThreatPanel } from '@/components/CyberThreatPanel';
+import { RansomwarePanel } from '@/components/RansomwarePanel';
+import { CVEPanel } from '@/components/CVEPanel';
+import { APTGroupsPanel } from '@/components/APTGroupsPanel';
+import { DataBreachPanel } from '@/components/DataBreachPanel';
+import { OSINTPanel } from '@/components/OSINTPanel';
+import { CyberSecurityNewsPanel } from '@/components/CyberSecurityNewsPanel';
+import { SecurityBlogsPanel } from '@/components/SecurityBlogsPanel';
 import { SatelliteFiresPanel } from '@/components/SatelliteFiresPanel';
 import { focusInvestmentOnMap } from '@/services/investments-focus';
 import { debounce, saveToStorage, loadFromStorage } from '@/utils';
@@ -150,6 +158,15 @@ export class PanelLayoutManager implements AppModule {
                title="${t('header.finance')}${SITE_VARIANT === 'finance' ? ` ${t('common.currentVariant')}` : ''}">
               <span class="variant-icon">📈</span>
               <span class="variant-label">${t('header.finance')}</span>
+            </a>
+            <span class="variant-divider"></span>
+            <a href="${vHref('cyber', 'https://cyber.worldmonitor.app')}"
+               class="variant-option ${SITE_VARIANT === 'cyber' ? 'active' : ''}"
+               data-variant="cyber"
+               ${vTarget('cyber')}
+               title="${t('header.cyber')}${SITE_VARIANT === 'cyber' ? ` ${t('common.currentVariant')}` : ''}">
+              <span class="variant-icon">🛡️</span>
+              <span class="variant-label">${t('header.cyber')}</span>
             </a>
             ${SITE_VARIANT === 'commodity' ? `<span class="variant-divider"></span>
             <a href="${vHref('commodity', 'https://commodity.worldmonitor.app')}"
@@ -556,6 +573,78 @@ export class PanelLayoutManager implements AppModule {
     }
 
     this.createPanel('gdelt-intel', () => new GdeltIntelPanel());
+
+    if (this.shouldCreatePanel('cyber-threats')) {
+      const cyberThreatPanel = new CyberThreatPanel();
+      cyberThreatPanel.setMapLayerToggleHandler((enabled) => {
+        if (this.ctx.map && enabled) {
+          this.ctx.mapLayers.cyberThreats = true;
+          this.ctx.map.setLayers(this.ctx.mapLayers);
+        }
+      });
+      this.ctx.panels['cyber-threats'] = cyberThreatPanel;
+      void cyberThreatPanel.refresh();
+      cyberThreatPanel.startPolling(5 * 60 * 1000);
+    }
+
+    if (this.shouldCreatePanel('ransomware')) {
+      const ransomwarePanel = new RansomwarePanel();
+      ransomwarePanel.setMapLayerToggleHandler((enabled) => {
+        if (this.ctx.map && enabled) {
+          this.ctx.mapLayers.ransomwareVictims = true;
+          this.ctx.map.setLayers(this.ctx.mapLayers);
+        }
+      });
+      this.ctx.panels['ransomware'] = ransomwarePanel;
+      void ransomwarePanel.refresh();
+      ransomwarePanel.startPolling(10 * 60 * 1000);
+    }
+
+    if (this.shouldCreatePanel('cve-feed')) {
+      const cvePanel = new CVEPanel();
+      this.ctx.panels['cve-feed'] = cvePanel;
+      void cvePanel.refresh();
+      cvePanel.startPolling(15 * 60 * 1000);
+    }
+
+    if (this.shouldCreatePanel('apt-groups')) {
+      const aptGroupsPanel = new APTGroupsPanel();
+      aptGroupsPanel.setMapLayerToggleHandler((enabled) => {
+        if (this.ctx.map && enabled) {
+          this.ctx.mapLayers.aptGroups = true;
+          this.ctx.map.setLayers(this.ctx.mapLayers);
+        }
+      });
+      this.ctx.panels['apt-groups'] = aptGroupsPanel;
+    }
+
+    if (this.shouldCreatePanel('data-breaches')) {
+      const dataBreachPanel = new DataBreachPanel();
+      this.ctx.panels['data-breaches'] = dataBreachPanel;
+      void dataBreachPanel.refresh();
+      dataBreachPanel.startPolling(30 * 60 * 1000);
+    }
+
+    if (this.shouldCreatePanel('osint')) {
+      const osintPanel = new OSINTPanel();
+      this.ctx.panels['osint'] = osintPanel;
+      void osintPanel.refresh();
+      osintPanel.startPolling(5 * 60 * 1000);
+    }
+
+    if (this.shouldCreatePanel('cyber-news')) {
+      const cyberNewsPanel = new CyberSecurityNewsPanel();
+      this.ctx.panels['cyber-news'] = cyberNewsPanel;
+      void cyberNewsPanel.refresh();
+      cyberNewsPanel.startPolling(5 * 60 * 1000);
+    }
+
+    if (this.shouldCreatePanel('security-blogs')) {
+      const securityBlogsPanel = new SecurityBlogsPanel();
+      this.ctx.panels['security-blogs'] = securityBlogsPanel;
+      void securityBlogsPanel.refresh();
+      securityBlogsPanel.startPolling(10 * 60 * 1000);
+    }
 
     if (SITE_VARIANT === 'full' && this.ctx.isDesktopApp) {
       import('@/components/DeductionPanel').then(({ DeductionPanel }) => {

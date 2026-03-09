@@ -27,6 +27,8 @@ import type {
   UcdpGeoEvent,
   CyberThreat,
   CableHealthRecord,
+  MapRansomwareVictim,
+  MapAPTGroup,
 } from '@/types';
 import type { AirportDelayAlert, PositionSample } from '@/services/aviation';
 import type { DisplacementFlow } from '@/services/displacement';
@@ -119,6 +121,8 @@ export class MapContainer {
   private cachedGpsJamming: GpsJamHex[] | null = null;
   private cachedSatellites: SatellitePosition[] | null = null;
   private cachedCyberThreats: CyberThreat[] | null = null;
+  private cachedRansomwareVictims: MapRansomwareVictim[] | null = null;
+  private cachedAPTGroups: MapAPTGroup[] | null = null;
   private cachedIranEvents: IranEvent[] | null = null;
   private cachedNewsLocations: NewsLocationMarker[] | null = null;
   private cachedPositiveEvents: PositiveGeoEvent[] | null = null;
@@ -280,6 +284,8 @@ export class MapContainer {
     if (this.cachedGpsJamming) this.setGpsJamming(this.cachedGpsJamming);
     if (this.cachedSatellites) this.setSatellites(this.cachedSatellites);
     if (this.cachedCyberThreats) this.setCyberThreats(this.cachedCyberThreats);
+    if (this.cachedRansomwareVictims) this.setRansomwareVictims(this.cachedRansomwareVictims);
+    if (this.cachedAPTGroups) this.setAPTGroups(this.cachedAPTGroups);
     if (this.cachedIranEvents) this.setIranEvents(this.cachedIranEvents);
     if (this.cachedNewsLocations) this.setNewsLocations(this.cachedNewsLocations);
     if (this.cachedPositiveEvents) this.setPositiveEvents(this.cachedPositiveEvents);
@@ -546,6 +552,22 @@ export class MapContainer {
       this.deckGLMap?.setCyberThreats(threats);
     } else {
       this.svgMap?.setCyberThreats(threats);
+    }
+  }
+
+  public setRansomwareVictims(victims: MapRansomwareVictim[]): void {
+    this.cachedRansomwareVictims = victims;
+    if (this.useGlobe) { this.globeMap?.setRansomwareVictims?.(victims); return; }
+    if (this.useDeckGL) {
+      this.deckGLMap?.setRansomwareVictims(victims);
+    }
+  }
+
+  public setAPTGroups(groups: MapAPTGroup[]): void {
+    this.cachedAPTGroups = groups;
+    if (this.useGlobe) { this.globeMap?.setAPTGroups?.(groups); return; }
+    if (this.useDeckGL) {
+      this.deckGLMap?.setAPTGroups(groups);
     }
   }
 

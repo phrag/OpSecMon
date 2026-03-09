@@ -140,6 +140,7 @@
     "filterSources": "Filter sources...",
     "sourcesEnabled": "{{enabled}}/{{total}} enabled",
     "finance": "FINANCE",
+    "cyber": "CYBER",
     "commodity": "COMMODITY",
     "toggleTheme": "Toggle dark/light mode",
     "panelDisplayCaption": "Choose which panels to show on the dashboard",
@@ -194,7 +195,10 @@
     "panelCatCentralBanks": "Central Banks & Econ",
     "panelCatDeals": "Deals & Institutional",
     "panelCatGulfMena": "Gulf & MENA",
-    "panelCatTradePolicy": "Trade Policy"
+    "panelCatTradePolicy": "Trade Policy",
+    "panelCatCyberThreats": "Cyber Threats",
+    "panelCatOsint": "OSINT & Intelligence",
+    "panelCatInfrastructure": "Infrastructure"
   },
   "panels": {
     "liveNews": "Live News",
@@ -270,7 +274,15 @@
     "gulfIndices": "Gulf Indices",
     "gulfCurrencies": "Gulf Currencies",
     "gulfOil": "Gulf Oil",
-    "airlineIntel": "✈️ Airline Intelligence"
+    "airlineIntel": "✈️ Airline Intelligence",
+    "cyberThreats": "Cyber Threats",
+    "ransomware": "Ransomware Tracker",
+    "cveFeed": "CVE Feed",
+    "aptGroups": "APT Groups",
+    "dataBreaches": "Data Breaches",
+    "osint": "OSINT Feed",
+    "cyberNews": "Cyber Security News",
+    "securityBlogs": "Security Blogs"
   },
   "commands": {
     "prefixes": {
@@ -690,6 +702,163 @@
       "demoMode": "DEMO MODE",
       "pricesIndicative": "All prices indicative"
     },
+    "cyberThreats": {
+      "infoTooltip": "Live cyber threat intelligence from multiple IOC feeds including Feodo Tracker, URLhaus, C2IntelFeeds, AlienVault OTX, and AbuseIPDB. Indicators are geo-enriched and severity-ranked.",
+      "tabs": {
+        "threats": "Threats",
+        "stats": "Statistics",
+        "activity": "Activity"
+      },
+      "noThreats": "No cyber threats detected",
+      "fetchError": "Failed to load cyber threats",
+      "showOnMap": "Show on Map",
+      "filterType": "Type",
+      "filterSeverity": "Severity",
+      "andMore": "+{{count}} more threats",
+      "byType": "By Threat Type",
+      "bySeverity": "By Severity",
+      "bySource": "By Source",
+      "topCountries": "Top Countries",
+      "recentActivity": "Recent Activity",
+      "totalThreats": "total threats",
+      "severity": {
+        "critical": "Critical",
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      },
+      "type": {
+        "c2_server": "C2 Server",
+        "malware_host": "Malware Host",
+        "phishing": "Phishing",
+        "malicious_url": "Malicious URL"
+      }
+    },
+    "ransomware": {
+      "infoTooltip": "Live ransomware intelligence from Ransomware.live tracking active ransomware groups and their recent victims across the globe.",
+      "tabs": {
+        "victims": "Victims",
+        "groups": "Groups",
+        "stats": "Statistics"
+      },
+      "noVictims": "No recent ransomware victims",
+      "noGroups": "No ransomware groups found",
+      "noData": "No ransomware data available",
+      "fetchError": "Failed to load ransomware data",
+      "filteringBy": "Filtering by",
+      "moreVictims": "more victims",
+      "victims": "victims",
+      "victimsLast30Days": "victims in the last 30 days",
+      "topGroups": "Top Ransomware Groups",
+      "topCountries": "Most Targeted Countries",
+      "topSectors": "Most Targeted Sectors",
+      "showOnMap": "Show on Map"
+    },
+    "cve": {
+      "infoTooltip": "Live vulnerability intelligence from the NIST National Vulnerability Database (NVD). Shows recent CVEs with CVSS scores and severity ratings.",
+      "tabs": {
+        "critical": "Critical",
+        "recent": "Recent",
+        "stats": "Statistics"
+      },
+      "noCves": "No CVEs found",
+      "fetchError": "Failed to load CVE data",
+      "searchPlaceholder": "Search CVEs...",
+      "moreCves": "more CVEs",
+      "critical": "Critical",
+      "high": "High",
+      "total": "Total",
+      "avgCvss": "Avg CVSS",
+      "bySeverity": "By Severity",
+      "topVendors": "Top Affected Vendors"
+    },
+    "apt": {
+      "infoTooltip": "APT and cybercriminal threat group profiles. Includes state-sponsored actors from MITRE ATT&CK and active hacking groups like ShinyHunters, Scattered Spider, and major ransomware operators.",
+      "tabs": {
+        "groups": "Groups",
+        "attribution": "Attribution",
+        "sectors": "Sectors"
+      },
+      "noGroups": "No APT groups found",
+      "searchPlaceholder": "Search groups, aliases...",
+      "lastUpdated": "Last updated",
+      "aliases": "Aliases",
+      "description": "Description",
+      "targetSectors": "Target Sectors",
+      "targetRegions": "Target Regions",
+      "ttps": "TTPs",
+      "lastActive": "Last Active",
+      "groups": "groups",
+      "groupsByCountry": "Groups by Attribution",
+      "mostTargeted": "Most Targeted Sectors",
+      "showOnMap": "Show on Map",
+      "knownBreaches": "Known Breaches",
+      "activityLevel": "Activity Level"
+    },
+    "breaches": {
+      "infoTooltip": "Data breach intelligence from Have I Been Pwned (HIBP). Shows recent and significant data breaches with compromised data types.",
+      "tabs": {
+        "recent": "Recent",
+        "largest": "Largest",
+        "stats": "Statistics"
+      },
+      "noBreaches": "No data breaches found",
+      "fetchError": "Failed to load breach data",
+      "accounts": "accounts",
+      "verified": "Verified",
+      "totalBreaches": "Breaches",
+      "totalAccounts": "Accounts",
+      "dataTypes": "Most Common Data Types",
+      "byYear": "Breaches by Year"
+    },
+    "osint": {
+      "infoTooltip": "Aggregated OSINT intelligence from Telegram channels, GDELT news feeds, and security RSS sources. Real-time updates on cyber, military, and geopolitical developments.",
+      "tabs": {
+        "feed": "Feed",
+        "topics": "Topics",
+        "sources": "Sources"
+      },
+      "noItems": "No OSINT items available",
+      "fetchError": "Failed to load OSINT data",
+      "earlySignal": "Early",
+      "bySource": "By Source",
+      "byTopic": "By Topic",
+      "coverage": "Coverage",
+      "coverageDesc": "This panel aggregates intelligence from multiple OSINT sources:",
+      "topicCyber": "Cyber",
+      "topicIntelligence": "Intelligence",
+      "topicMilitary": "Military",
+      "topicNuclear": "Nuclear",
+      "topicSanctions": "Sanctions"
+    },
+    "cyberNews": {
+      "infoTooltip": "Aggregated cybersecurity news from top security publications, vendor threat intelligence blogs, and government advisories. Real-time coverage of breaches, vulnerabilities, and threat actor activity.",
+      "noItems": "No cybersecurity news available",
+      "fetchError": "Failed to load cybersecurity news",
+      "totalArticles": "Articles",
+      "lastHour": "Last Hour",
+      "activeSources": "Sources",
+      "sources": "sources",
+      "filterNews": "News",
+      "filterResearch": "Research",
+      "filterVendor": "Vendors",
+      "filterGov": "Gov",
+      "justNow": "now"
+    },
+    "securityBlogs": {
+      "infoTooltip": "Curated security blog posts from top researchers, threat intelligence teams, and security vendors. In-depth analysis, vulnerability research, and expert insights.",
+      "noItems": "No blog posts available",
+      "fetchError": "Failed to load security blogs",
+      "totalPosts": "Posts",
+      "last24h": "Last 24h",
+      "activeBlogs": "Blogs",
+      "blogs": "blogs",
+      "filterResearch": "Research",
+      "filterVendor": "Vendors",
+      "filterPersonal": "Personal",
+      "filterTeam": "Teams",
+      "justNow": "now"
+    },
     "goodThingsDigest": {
       "noStories": "No stories available",
       "summarizing": "Summarizing…"
@@ -1018,6 +1187,8 @@
         "underseaCables": "Undersea Cables",
         "internetOutages": "Internet Outages",
         "cyberThreats": "Cyber Threats",
+        "ransomwareVictims": "Ransomware Victims",
+        "aptGroups": "APT Groups",
         "techEvents": "Tech Events",
         "naturalEvents": "Natural Events",
         "fires": "Fires",

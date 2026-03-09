@@ -50,6 +50,122 @@ export type CyberThreatSource = "CYBER_THREAT_SOURCE_UNSPECIFIED" | "CYBER_THREA
 
 export type CyberThreatType = "CYBER_THREAT_TYPE_UNSPECIFIED" | "CYBER_THREAT_TYPE_C2_SERVER" | "CYBER_THREAT_TYPE_MALWARE_HOST" | "CYBER_THREAT_TYPE_PHISHING" | "CYBER_THREAT_TYPE_MALICIOUS_URL";
 
+// Ransomware types
+export interface RansomwareGroup {
+  name: string;
+  victimCount: number;
+  lastSeenAt: number;
+  firstSeenAt: number;
+  description: string;
+  aliases: string[];
+  targetSectors: string[];
+  targetCountries: string[];
+  status: string;
+  sites: string[];
+}
+
+export interface RansomwareVictim {
+  name: string;
+  group: string;
+  discoveredAt: number;
+  attackedAt: number;
+  country: string;
+  sector: string;
+  website: string;
+  status: string;
+  description: string;
+}
+
+export interface ListRansomwareGroupsRequest {
+  activeDays: number;
+  pageSize: number;
+  cursor: string;
+}
+
+export interface ListRansomwareGroupsResponse {
+  groups: RansomwareGroup[];
+  totalCount: number;
+  nextCursor: string;
+}
+
+export interface ListRansomwareVictimsRequest {
+  group: string;
+  days: number;
+  pageSize: number;
+  cursor: string;
+}
+
+export interface ListRansomwareVictimsResponse {
+  victims: RansomwareVictim[];
+  totalCount: number;
+  nextCursor: string;
+}
+
+// CVE types
+export interface CVE {
+  id: string;
+  description: string;
+  cvssScore: number;
+  severity: string;
+  cvssVector: string;
+  affectedProducts: string[];
+  cweIds: string[];
+  publishedAt: number;
+  modifiedAt: number;
+  references: string[];
+  inKev: boolean;
+  vendor: string;
+  product: string;
+}
+
+export interface ListCVEsRequest {
+  minCvss: number;
+  severity: string;
+  keyword: string;
+  days: number;
+  pageSize: number;
+  cursor: string;
+  kevOnly: boolean;
+}
+
+export interface ListCVEsResponse {
+  cves: CVE[];
+  totalCount: number;
+  nextCursor: string;
+}
+
+// Data breach types
+export interface DataBreach {
+  name: string;
+  title: string;
+  domain: string;
+  breachDate: number;
+  addedDate: number;
+  modifiedDate: number;
+  pwnCount: number;
+  description: string;
+  dataClasses: string[];
+  isVerified: boolean;
+  isFabricated: boolean;
+  isSensitive: boolean;
+  isRetired: boolean;
+  isSpamList: boolean;
+  logoPath: string;
+}
+
+export interface ListBreachesRequest {
+  days: number;
+  verifiedOnly: boolean;
+  pageSize: number;
+  cursor: string;
+}
+
+export interface ListBreachesResponse {
+  breaches: DataBreach[];
+  totalCount: number;
+  nextCursor: string;
+}
+
 export interface FieldViolation {
   field: string;
   description: string;
@@ -96,6 +212,10 @@ export interface RouteDescriptor {
 
 export interface CyberServiceHandler {
   listCyberThreats(ctx: ServerContext, req: ListCyberThreatsRequest): Promise<ListCyberThreatsResponse>;
+  listRansomwareGroups(ctx: ServerContext, req: ListRansomwareGroupsRequest): Promise<ListRansomwareGroupsResponse>;
+  listRansomwareVictims(ctx: ServerContext, req: ListRansomwareVictimsRequest): Promise<ListRansomwareVictimsResponse>;
+  listCVEs(ctx: ServerContext, req: ListCVEsRequest): Promise<ListCVEsResponse>;
+  listBreaches(ctx: ServerContext, req: ListBreachesRequest): Promise<ListBreachesResponse>;
 }
 
 export function createCyberServiceRoutes(
@@ -156,6 +276,207 @@ export function createCyberServiceRoutes(
         }
       },
     },
+    {
+      method: "GET",
+      path: "/api/cyber/v1/list-ransomware-groups",
+      handler: async (req: Request): Promise<Response> => {
+        try {
+          const pathParams: Record<string, string> = {};
+          const url = new URL(req.url, "http://localhost");
+          const params = url.searchParams;
+          const body: ListRansomwareGroupsRequest = {
+            activeDays: Number(params.get("active_days") ?? "0"),
+            pageSize: Number(params.get("page_size") ?? "50"),
+            cursor: params.get("cursor") ?? "",
+          };
+          if (options?.validateRequest) {
+            const bodyViolations = options.validateRequest("listRansomwareGroups", body);
+            if (bodyViolations) {
+              throw new ValidationError(bodyViolations);
+            }
+          }
+
+          const ctx: ServerContext = {
+            request: req,
+            pathParams,
+            headers: Object.fromEntries(req.headers.entries()),
+          };
+
+          const result = await handler.listRansomwareGroups(ctx, body);
+          return new Response(JSON.stringify(result as ListRansomwareGroupsResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        } catch (err: unknown) {
+          if (err instanceof ValidationError) {
+            return new Response(JSON.stringify({ violations: err.violations }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            });
+          }
+          if (options?.onError) {
+            return options.onError(err, req);
+          }
+          const message = err instanceof Error ? err.message : String(err);
+          return new Response(JSON.stringify({ message }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+      },
+    },
+    {
+      method: "GET",
+      path: "/api/cyber/v1/list-ransomware-victims",
+      handler: async (req: Request): Promise<Response> => {
+        try {
+          const pathParams: Record<string, string> = {};
+          const url = new URL(req.url, "http://localhost");
+          const params = url.searchParams;
+          const body: ListRansomwareVictimsRequest = {
+            group: params.get("group") ?? "",
+            days: Number(params.get("days") ?? "30"),
+            pageSize: Number(params.get("page_size") ?? "50"),
+            cursor: params.get("cursor") ?? "",
+          };
+          if (options?.validateRequest) {
+            const bodyViolations = options.validateRequest("listRansomwareVictims", body);
+            if (bodyViolations) {
+              throw new ValidationError(bodyViolations);
+            }
+          }
+
+          const ctx: ServerContext = {
+            request: req,
+            pathParams,
+            headers: Object.fromEntries(req.headers.entries()),
+          };
+
+          const result = await handler.listRansomwareVictims(ctx, body);
+          return new Response(JSON.stringify(result as ListRansomwareVictimsResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        } catch (err: unknown) {
+          if (err instanceof ValidationError) {
+            return new Response(JSON.stringify({ violations: err.violations }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            });
+          }
+          if (options?.onError) {
+            return options.onError(err, req);
+          }
+          const message = err instanceof Error ? err.message : String(err);
+          return new Response(JSON.stringify({ message }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+      },
+    },
+    {
+      method: "GET",
+      path: "/api/cyber/v1/list-cves",
+      handler: async (req: Request): Promise<Response> => {
+        try {
+          const pathParams: Record<string, string> = {};
+          const url = new URL(req.url, "http://localhost");
+          const params = url.searchParams;
+          const body: ListCVEsRequest = {
+            minCvss: Number(params.get("min_cvss") ?? "0"),
+            severity: params.get("severity") ?? "",
+            keyword: params.get("keyword") ?? "",
+            days: Number(params.get("days") ?? "7"),
+            pageSize: Number(params.get("page_size") ?? "50"),
+            cursor: params.get("cursor") ?? "",
+            kevOnly: params.get("kev_only") === "true",
+          };
+          if (options?.validateRequest) {
+            const bodyViolations = options.validateRequest("listCVEs", body);
+            if (bodyViolations) {
+              throw new ValidationError(bodyViolations);
+            }
+          }
+
+          const ctx: ServerContext = {
+            request: req,
+            pathParams,
+            headers: Object.fromEntries(req.headers.entries()),
+          };
+
+          const result = await handler.listCVEs(ctx, body);
+          return new Response(JSON.stringify(result as ListCVEsResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        } catch (err: unknown) {
+          if (err instanceof ValidationError) {
+            return new Response(JSON.stringify({ violations: err.violations }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            });
+          }
+          if (options?.onError) {
+            return options.onError(err, req);
+          }
+          const message = err instanceof Error ? err.message : String(err);
+          return new Response(JSON.stringify({ message }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+      },
+    },
+    {
+      method: "GET",
+      path: "/api/cyber/v1/list-breaches",
+      handler: async (req: Request): Promise<Response> => {
+        try {
+          const pathParams: Record<string, string> = {};
+          const url = new URL(req.url, "http://localhost");
+          const params = url.searchParams;
+          const body: ListBreachesRequest = {
+            days: Number(params.get("days") ?? "90"),
+            verifiedOnly: params.get("verified_only") === "true",
+            pageSize: Number(params.get("page_size") ?? "50"),
+            cursor: params.get("cursor") ?? "",
+          };
+          if (options?.validateRequest) {
+            const bodyViolations = options.validateRequest("listBreaches", body);
+            if (bodyViolations) {
+              throw new ValidationError(bodyViolations);
+            }
+          }
+
+          const ctx: ServerContext = {
+            request: req,
+            pathParams,
+            headers: Object.fromEntries(req.headers.entries()),
+          };
+
+          const result = await handler.listBreaches(ctx, body);
+          return new Response(JSON.stringify(result as ListBreachesResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        } catch (err: unknown) {
+          if (err instanceof ValidationError) {
+            return new Response(JSON.stringify({ violations: err.violations }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            });
+          }
+          if (options?.onError) {
+            return options.onError(err, req);
+          }
+          const message = err instanceof Error ? err.message : String(err);
+          return new Response(JSON.stringify({ message }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+      },
+    },
   ];
 }
-

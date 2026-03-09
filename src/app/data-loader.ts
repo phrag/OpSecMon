@@ -1,6 +1,6 @@
 import type { AppContext, AppModule } from '@/app/app-context';
 import { enqueuePanelCall } from '@/app/pending-panel-data';
-import type { NewsItem, MapLayers, SocialUnrestEvent } from '@/types';
+import type { NewsItem, MapLayers, SocialUnrestEvent, MapRansomwareVictim, MapAPTGroup } from '@/types';
 import type { MarketData } from '@/types';
 import type { TimeRange } from '@/components';
 import {
@@ -93,6 +93,9 @@ import { fetchUnhcrPopulation } from '@/services/displacement';
 import { fetchClimateAnomalies } from '@/services/climate';
 import { fetchSecurityAdvisories } from '@/services/security-advisories';
 import { fetchTelegramFeed } from '@/services/telegram-intel';
+import { fetchRansomwareVictims } from '@/services/cyber/ransomware';
+import { getAPTGroups } from '@/services/cyber/apt';
+import { getCountryCentroid } from '@/utils/country-centroids';
 import { fetchOrefAlerts, startOrefPolling, stopOrefPolling, onOrefAlertsUpdate } from '@/services/oref-alerts';
 import { enrichEventsWithExposure } from '@/services/population-exposure';
 import { debounce, getCircuitBreakerCooldownInfo } from '@/utils';
@@ -178,7 +181,7 @@ function protoItemToNewsItem(p: ProtoNewsItem): NewsItem {
   };
 }
 
-const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === 'true';
+const CYBER_LAYER_ENABLED = import.meta.env.VITE_ENABLE_CYBER_LAYER === 'true' || SITE_VARIANT === 'cyber';
 
 export interface DataLoaderCallbacks {
   renderCriticalBanner: (postures: TheaterPostureSummary[]) => void;
@@ -428,6 +431,8 @@ export class DataLoaderManager implements AppModule {
     if (SITE_VARIANT !== 'happy' && this.ctx.mapLayers.cables) tasks.push({ name: 'cableHealth', task: runGuarded('cableHealth', () => this.loadCableHealth()) });
     if (SITE_VARIANT !== 'happy' && this.ctx.mapLayers.flights) tasks.push({ name: 'flights', task: runGuarded('flights', () => this.loadFlightDelays()) });
     if (SITE_VARIANT !== 'happy' && CYBER_LAYER_ENABLED && this.ctx.mapLayers.cyberThreats) tasks.push({ name: 'cyberThreats', task: runGuarded('cyberThreats', () => this.loadCyberThreats()) });
+    if (SITE_VARIANT !== 'happy' && this.ctx.mapLayers.ransomwareVictims) tasks.push({ name: 'ransomwareVictims', task: runGuarded('ransomwareVictims', () => this.loadRansomwareVictims()) });
+    if (SITE_VARIANT !== 'happy' && this.ctx.mapLayers.aptGroups) tasks.push({ name: 'aptGroups', task: runGuarded('aptGroups', () => this.loadAPTGroups()) });
     if (SITE_VARIANT !== 'happy' && !isDesktopRuntime()) tasks.push({ name: 'iranAttacks', task: runGuarded('iranAttacks', () => this.loadIranEvents()) });
     if (SITE_VARIANT !== 'happy' && (this.ctx.mapLayers.techEvents || SITE_VARIANT === 'tech')) tasks.push({ name: 'techEvents', task: runGuarded('techEvents', () => this.loadTechEvents()) });
     if (SITE_VARIANT !== 'happy' && this.ctx.mapLayers.satellites && this.ctx.map?.isGlobeMode?.()) tasks.push({ name: 'satellites', task: runGuarded('satellites', () => this.loadSatellites()) });
@@ -495,6 +500,12 @@ export class DataLoaderManager implements AppModule {
           break;
         case 'cyberThreats':
           await this.loadCyberThreats();
+          break;
+        case 'ransomwareVictims':
+          await this.loadRansomwareVictims();
+          break;
+        case 'aptGroups':
+          await this.loadAPTGroups();
           break;
         case 'ais':
           await this.loadAisSignals();
@@ -1764,6 +1775,80 @@ export class DataLoaderManager implements AppModule {
       this.ctx.statusPanel?.updateFeed('Cyber Threats', { status: 'error', errorMessage: String(error) });
       this.ctx.statusPanel?.updateApi('Cyber Threats API', { status: 'error' });
       dataFreshness.recordError('cyber_threats', String(error));
+    }
+  }
+
+  async loadRansomwareVictims(): Promise<void> {
+    if (this.ctx.ransomwareVictimsCache) {
+      this.ctx.map?.setRansomwareVictims(this.ctx.ransomwareVictimsCache);
+      this.ctx.map?.setLayerReady('ransomwareVictims', this.ctx.ransomwareVictimsCache.length > 0);
+      return;
+    }
+
+    try {
+      const { victims } = await fetchRansomwareVictims({ days: 30, pageSize: 200 });
+      const mapVictims: MapRansomwareVictim[] = [];
+
+      for (const v of victims) {
+        const coords = getCountryCentroid(v.country, v.name);
+        if (coords) {
+          mapVictims.push({
+            id: `${v.group}:${v.name}:${v.discoveredAt}`,
+            name: v.name,
+            group: v.group,
+            country: v.country,
+            sector: v.sector,
+            discoveredAt: v.discoveredAt,
+            lat: coords.lat,
+            lon: coords.lon,
+          });
+        }
+      }
+
+      this.ctx.ransomwareVictimsCache = mapVictims;
+      this.ctx.map?.setRansomwareVictims(mapVictims);
+      this.ctx.map?.setLayerReady('ransomwareVictims', mapVictims.length > 0);
+      dataFreshness.recordUpdate('ransomware_victims' as DataSourceId, mapVictims.length);
+    } catch (error) {
+      this.ctx.map?.setLayerReady('ransomwareVictims', false);
+      dataFreshness.recordError('ransomware_victims' as DataSourceId, String(error));
+    }
+  }
+
+  async loadAPTGroups(): Promise<void> {
+    if (this.ctx.aptGroupsCache) {
+      this.ctx.map?.setAPTGroups(this.ctx.aptGroupsCache);
+      this.ctx.map?.setLayerReady('aptGroups', this.ctx.aptGroupsCache.length > 0);
+      return;
+    }
+
+    try {
+      const groups = getAPTGroups();
+      const mapGroups: MapAPTGroup[] = [];
+
+      for (const g of groups) {
+        const coords = getCountryCentroid(g.attribution, g.id);
+        if (coords) {
+          mapGroups.push({
+            id: g.id,
+            name: g.name,
+            aliases: g.aliases,
+            attribution: g.attribution,
+            targetSectors: g.targetSectors,
+            targetRegions: g.targetRegions,
+            lat: coords.lat,
+            lon: coords.lon,
+          });
+        }
+      }
+
+      this.ctx.aptGroupsCache = mapGroups;
+      this.ctx.map?.setAPTGroups(mapGroups);
+      this.ctx.map?.setLayerReady('aptGroups', mapGroups.length > 0);
+      dataFreshness.recordUpdate('apt_groups' as DataSourceId, mapGroups.length);
+    } catch (error) {
+      this.ctx.map?.setLayerReady('aptGroups', false);
+      dataFreshness.recordError('apt_groups' as DataSourceId, String(error));
     }
   }
 

@@ -20,6 +20,14 @@ const FULL_PANELS: Record<string, PanelConfig> = {
   'strategic-risk': { name: 'Strategic Risk Overview', enabled: true, priority: 1, ...(_desktop && { premium: 'enhanced' as const }) },
   intel: { name: 'Intel Feed', enabled: true, priority: 1 },
   'gdelt-intel': { name: 'Live Intelligence', enabled: true, priority: 1, ...(_desktop && { premium: 'enhanced' as const }) },
+  'cyber-threats': { name: 'Cyber Threats', enabled: true, priority: 1 },
+  'ransomware': { name: 'Ransomware Tracker', enabled: true, priority: 1 },
+  'cve-feed': { name: 'CVE Feed', enabled: true, priority: 1 },
+  'apt-groups': { name: 'APT Groups', enabled: true, priority: 1 },
+  'data-breaches': { name: 'Data Breaches', enabled: true, priority: 1 },
+  'osint': { name: 'OSINT Feed', enabled: true, priority: 1 },
+  'cyber-news': { name: 'Cyber Security News', enabled: true, priority: 1 },
+  'security-blogs': { name: 'Security Blogs', enabled: true, priority: 1 },
   cascade: { name: 'Infrastructure Cascade', enabled: true, priority: 1 },
   politics: { name: 'World News', enabled: true, priority: 1 },
   us: { name: 'United States', enabled: true, priority: 1 },
@@ -81,6 +89,8 @@ const FULL_MAP_LAYERS: MapLayers = {
   waterways: true,
   outages: true,
   cyberThreats: false,
+  ransomwareVictims: false,
+  aptGroups: false,
   datacenters: false,
   protests: false,
   flights: false,
@@ -139,6 +149,8 @@ const FULL_MOBILE_MAP_LAYERS: MapLayers = {
   waterways: false,
   outages: true,
   cyberThreats: false,
+  ransomwareVictims: false,
+  aptGroups: false,
   datacenters: false,
   protests: false,
   flights: false,
@@ -194,6 +206,14 @@ const TECH_PANELS: Record<string, PanelConfig> = {
   unicorns: { name: 'Unicorn Tracker', enabled: true, priority: 1 },
   accelerators: { name: 'Accelerators & Demo Days', enabled: true, priority: 1 },
   security: { name: 'Cybersecurity', enabled: true, priority: 1 },
+  'cyber-threats': { name: 'Cyber Threats', enabled: true, priority: 1 },
+  'ransomware': { name: 'Ransomware Tracker', enabled: true, priority: 1 },
+  'cve-feed': { name: 'CVE Feed', enabled: true, priority: 1 },
+  'apt-groups': { name: 'APT Groups', enabled: true, priority: 1 },
+  'data-breaches': { name: 'Data Breaches', enabled: true, priority: 1 },
+  'osint': { name: 'OSINT Feed', enabled: true, priority: 1 },
+  'cyber-news': { name: 'Cyber Security News', enabled: true, priority: 1 },
+  'security-blogs': { name: 'Security Blogs', enabled: true, priority: 1 },
   policy: { name: 'AI Policy & Regulation', enabled: true, priority: 1 },
   regulation: { name: 'AI Regulation Dashboard', enabled: true, priority: 1 },
   layoffs: { name: 'Layoffs Tracker', enabled: true, priority: 1 },
@@ -238,6 +258,8 @@ const TECH_MAP_LAYERS: MapLayers = {
   waterways: false,
   outages: true,
   cyberThreats: false,
+  ransomwareVictims: false,
+  aptGroups: false,
   datacenters: true,
   protests: false,
   flights: false,
@@ -296,6 +318,8 @@ const TECH_MOBILE_MAP_LAYERS: MapLayers = {
   waterways: false,
   outages: true,
   cyberThreats: false,
+  ransomwareVictims: false,
+  aptGroups: false,
   datacenters: true,
   protests: false,
   flights: false,
@@ -397,6 +421,8 @@ const FINANCE_MAP_LAYERS: MapLayers = {
   waterways: true,
   outages: true,
   cyberThreats: false,
+  ransomwareVictims: false,
+  aptGroups: false,
   datacenters: false,
   protests: false,
   flights: false,
@@ -455,6 +481,8 @@ const FINANCE_MOBILE_MAP_LAYERS: MapLayers = {
   waterways: false,
   outages: true,
   cyberThreats: false,
+  ransomwareVictims: false,
+  aptGroups: false,
   datacenters: false,
   protests: false,
   flights: false,
@@ -529,6 +557,8 @@ const HAPPY_MAP_LAYERS: MapLayers = {
   waterways: false,
   outages: false,
   cyberThreats: false,
+  ransomwareVictims: false,
+  aptGroups: false,
   datacenters: false,
   protests: false,
   flights: false,
@@ -587,6 +617,8 @@ const HAPPY_MOBILE_MAP_LAYERS: MapLayers = {
   waterways: false,
   outages: false,
   cyberThreats: false,
+  ransomwareVictims: false,
+  aptGroups: false,
   datacenters: false,
   protests: false,
   flights: false,
@@ -676,6 +708,8 @@ const COMMODITY_MAP_LAYERS: MapLayers = {
   waterways: true,
   outages: true,
   cyberThreats: false,
+  ransomwareVictims: false,
+  aptGroups: false,
   datacenters: false,
   protests: false,
   flights: false,
@@ -734,6 +768,8 @@ const COMMODITY_MOBILE_MAP_LAYERS: MapLayers = {
   waterways: false,
   outages: true,
   cyberThreats: false,
+  ransomwareVictims: false,
+  aptGroups: false,
   datacenters: false,
   protests: false,
   flights: false,
@@ -775,6 +811,149 @@ const COMMODITY_MOBILE_MAP_LAYERS: MapLayers = {
 };
 
 // ============================================
+// CYBER VARIANT (Cybersecurity/OSINT)
+// ============================================
+const CYBER_PANELS: Record<string, PanelConfig> = {
+  map: { name: 'Global Map', enabled: true, priority: 1 },
+  // Primary threat intelligence
+  'cyber-threats': { name: 'Cyber Threats', enabled: true, priority: 1 },
+  'ransomware': { name: 'Ransomware Tracker', enabled: true, priority: 1 },
+  'cve-feed': { name: 'CVE Feed', enabled: true, priority: 1 },
+  'data-breaches': { name: 'Data Breaches', enabled: true, priority: 1 },
+  // Threat actors
+  'apt-groups': { name: 'APT Groups', enabled: true, priority: 1 },
+  // News & OSINT
+  'cyber-news': { name: 'Cyber Security News', enabled: true, priority: 1 },
+  'security-blogs': { name: 'Security Blogs', enabled: true, priority: 1 },
+  'gdelt-intel': { name: 'Threat Intelligence', enabled: true, priority: 1 },
+  'osint': { name: 'OSINT Feed', enabled: true, priority: 1 },
+  // Infrastructure
+  outages: { name: 'Internet Outages', enabled: true, priority: 2 },
+  cascade: { name: 'Infrastructure Cascade', enabled: true, priority: 2 },
+  // Utilities
+  monitors: { name: 'My Monitors', enabled: true, priority: 2 },
+  'world-clock': { name: 'World Clock', enabled: true, priority: 2 },
+};
+
+const CYBER_MAP_LAYERS: MapLayers = {
+  gpsJamming: true,
+  satellites: false,
+
+  conflicts: false,
+  bases: false,
+  cables: true,
+  pipelines: false,
+  hotspots: true,
+  ais: false,
+  nuclear: false,
+  irradiators: false,
+  sanctions: false,
+  weather: false,
+  economic: false,
+  waterways: false,
+  outages: true,
+  cyberThreats: true,
+  ransomwareVictims: true,
+  aptGroups: true,
+  datacenters: true,
+  protests: false,
+  flights: false,
+  military: false,
+  natural: false,
+  spaceports: false,
+  minerals: false,
+  fires: false,
+  ucdpEvents: false,
+  displacement: false,
+  climate: false,
+  // Tech layers
+  startupHubs: false,
+  cloudRegions: true,
+  accelerators: false,
+  techHQs: false,
+  techEvents: false,
+  // Finance layers (disabled)
+  stockExchanges: false,
+  financialCenters: false,
+  centralBanks: false,
+  commodityHubs: false,
+  gulfInvestments: false,
+  // Happy variant layers (disabled)
+  positiveEvents: false,
+  kindness: false,
+  happiness: false,
+  speciesRecovery: false,
+  renewableInstallations: false,
+  tradeRoutes: false,
+  iranAttacks: false,
+  ciiChoropleth: false,
+  dayNight: false,
+  // Commodity layers (disabled)
+  miningSites: false,
+  processingPlants: false,
+  commodityPorts: false,
+};
+
+const CYBER_MOBILE_MAP_LAYERS: MapLayers = {
+  gpsJamming: false,
+  satellites: false,
+
+  conflicts: false,
+  bases: false,
+  cables: false,
+  pipelines: false,
+  hotspots: true,
+  ais: false,
+  nuclear: false,
+  irradiators: false,
+  sanctions: false,
+  weather: false,
+  economic: false,
+  waterways: false,
+  outages: true,
+  cyberThreats: true,
+  ransomwareVictims: true,
+  aptGroups: false,
+  datacenters: false,
+  protests: false,
+  flights: false,
+  military: false,
+  natural: false,
+  spaceports: false,
+  minerals: false,
+  fires: false,
+  ucdpEvents: false,
+  displacement: false,
+  climate: false,
+  // Tech layers (disabled)
+  startupHubs: false,
+  cloudRegions: false,
+  accelerators: false,
+  techHQs: false,
+  techEvents: false,
+  // Finance layers (disabled)
+  stockExchanges: false,
+  financialCenters: false,
+  centralBanks: false,
+  commodityHubs: false,
+  gulfInvestments: false,
+  // Happy variant layers (disabled)
+  positiveEvents: false,
+  kindness: false,
+  happiness: false,
+  speciesRecovery: false,
+  renewableInstallations: false,
+  tradeRoutes: false,
+  iranAttacks: false,
+  ciiChoropleth: false,
+  dayNight: false,
+  // Commodity layers (disabled)
+  miningSites: false,
+  processingPlants: false,
+  commodityPorts: false,
+};
+
+// ============================================
 // VARIANT-AWARE EXPORTS
 // ============================================
 export const DEFAULT_PANELS = SITE_VARIANT === 'happy' 
@@ -785,7 +964,9 @@ export const DEFAULT_PANELS = SITE_VARIANT === 'happy'
       ? FINANCE_PANELS 
       : SITE_VARIANT === 'commodity'
         ? COMMODITY_PANELS
-        : FULL_PANELS;
+        : SITE_VARIANT === 'cyber'
+          ? CYBER_PANELS
+          : FULL_PANELS;
 
 export const DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy' 
   ? HAPPY_MAP_LAYERS 
@@ -795,7 +976,9 @@ export const DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy'
       ? FINANCE_MAP_LAYERS 
       : SITE_VARIANT === 'commodity'
         ? COMMODITY_MAP_LAYERS
-        : FULL_MAP_LAYERS;
+        : SITE_VARIANT === 'cyber'
+          ? CYBER_MAP_LAYERS
+          : FULL_MAP_LAYERS;
 
 export const MOBILE_DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy' 
   ? HAPPY_MOBILE_MAP_LAYERS 
@@ -805,7 +988,9 @@ export const MOBILE_DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy'
       ? FINANCE_MOBILE_MAP_LAYERS 
       : SITE_VARIANT === 'commodity'
         ? COMMODITY_MOBILE_MAP_LAYERS
-        : FULL_MOBILE_MAP_LAYERS;
+        : SITE_VARIANT === 'cyber'
+          ? CYBER_MOBILE_MAP_LAYERS
+          : FULL_MOBILE_MAP_LAYERS;
 
 /** Maps map-layer toggle keys to their data-freshness source IDs (single source of truth). */
 export const LAYER_TO_SOURCE: Partial<Record<keyof MapLayers, DataSourceId[]>> = {
@@ -815,6 +1000,8 @@ export const LAYER_TO_SOURCE: Partial<Record<keyof MapLayers, DataSourceId[]>> =
   weather: ['weather'],
   outages: ['outages'],
   cyberThreats: ['cyber_threats'],
+  ransomwareVictims: ['ransomware_victims'],
+  aptGroups: ['apt_groups'],
   protests: ['acled', 'gdelt_doc'],
   ucdpEvents: ['ucdp_events'],
   displacement: ['unhcr'],
@@ -838,7 +1025,7 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
   // Full (geopolitical) variant
   intelligence: {
     labelKey: 'header.panelCatIntelligence',
-    panelKeys: ['cii', 'strategic-risk', 'intel', 'gdelt-intel', 'cascade', 'telegram-intel'],
+    panelKeys: ['cii', 'strategic-risk', 'intel', 'gdelt-intel', 'cyber-threats', 'ransomware', 'cve-feed', 'apt-groups', 'data-breaches', 'osint', 'cyber-news', 'security-blogs', 'cascade', 'telegram-intel'],
     variants: ['full'],
   },
   regionalNews: {
@@ -875,7 +1062,7 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
   },
   securityPolicy: {
     labelKey: 'header.panelCatSecurityPolicy',
-    panelKeys: ['security', 'policy', 'regulation'],
+    panelKeys: ['security', 'cyber-threats', 'ransomware', 'cve-feed', 'apt-groups', 'data-breaches', 'osint', 'cyber-news', 'security-blogs', 'policy', 'regulation'],
     variants: ['tech'],
   },
   techMarkets: {
@@ -919,6 +1106,23 @@ export const PANEL_CATEGORY_MAP: Record<string, { labelKey: string; panelKeys: s
     labelKey: 'header.panelCatGulfMena',
     panelKeys: ['gulf-economies', 'gcc-investments', 'gccNews', 'monitors', 'world-clock'],
     variants: ['finance'],
+  },
+
+  // Cyber variant
+  cyberThreats: {
+    labelKey: 'header.panelCatCyberThreats',
+    panelKeys: ['cyber-threats', 'ransomware', 'cve-feed', 'apt-groups', 'data-breaches'],
+    variants: ['cyber'],
+  },
+  cyberOsint: {
+    labelKey: 'header.panelCatOsint',
+    panelKeys: ['osint', 'gdelt-intel', 'cyber-news', 'security-blogs'],
+    variants: ['cyber'],
+  },
+  cyberInfra: {
+    labelKey: 'header.panelCatInfrastructure',
+    panelKeys: ['outages', 'cascade', 'security', 'monitors', 'world-clock'],
+    variants: ['cyber'],
   },
 };
 

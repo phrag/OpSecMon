@@ -13,6 +13,7 @@
     "dev:finance": "cross-env VITE_VARIANT=finance vite",
     "dev:happy": "cross-env VITE_VARIANT=happy vite",
     "dev:commodity": "cross-env VITE_VARIANT=commodity vite",
+    "dev:cyber": "cross-env VITE_VARIANT=cyber vite",
     "build:pro": "cd pro-test && npm install && npm run build",
     "build": "tsc && vite build",
     "build:sidecar-sebuf": "node scripts/build-sidecar-sebuf.mjs",
@@ -22,6 +23,7 @@
     "build:finance": "cross-env-shell VITE_VARIANT=finance \"tsc && vite build\"",
     "build:happy": "cross-env-shell VITE_VARIANT=happy \"tsc && vite build\"",
     "build:commodity": "cross-env-shell VITE_VARIANT=commodity \"tsc && vite build\"",
+    "build:cyber": "cross-env-shell VITE_VARIANT=cyber \"tsc && vite build\"",
     "typecheck": "tsc --noEmit",
     "typecheck:api": "tsc --noEmit -p tsconfig.api.json",
     "typecheck:all": "tsc --noEmit && tsc --noEmit -p tsconfig.api.json",
@@ -73,7 +75,7 @@
     "cross-env": "^10.1.0",
     "esbuild": "^0.27.3",
     "h3-js": "^4.4.0",
-    "markdownlint-cli2": "^0.20.0",
+    "markdownlint-cli2": "^0.21.0",
     "tsx": "^4.21.0",
     "typescript": "^5.7.2",
     "vite": "^6.0.7",
@@ -114,6 +116,7 @@
     "youtubei.js": "^16.0.1"
   },
   "overrides": {
-    "fast-xml-parser": "^5.3.7"
+    "fast-xml-parser": "^5.3.7",
+    "serialize-javascript": "^7.0.4"
   }
 }
